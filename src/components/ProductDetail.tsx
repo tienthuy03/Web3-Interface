@@ -6,6 +6,9 @@ type Product = {
   name: string
   price: number
   description?: string
+  ingredients?: string
+  manufactureDate?: number
+  expiryDate?: number
 }
 
 type Props = {
@@ -25,8 +28,11 @@ export default function ProductDetail({ product, onBack, onEdit, onDelete }: Pro
 
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
 
+  const formatDate = (ts?: number) =>
+      ts ? new Date(ts * 1000).toLocaleDateString('vi-VN') : '-'
+
   useEffect(() => {
-    const payload = JSON.stringify({ id: product.id, name: product.name, price: product.price, description: product.description })
+    const payload = JSON.stringify({ id: product.id, name: product.name, price: product.price, description: product.description, ingredients: product.ingredients, manufactureDate: product.manufactureDate, expiryDate: product.expiryDate })
     toDataURL(payload, { width: 160 })
       .then(url => setQrDataUrl(url))
       .catch(() => setQrDataUrl(null))
@@ -44,6 +50,19 @@ export default function ProductDetail({ product, onBack, onEdit, onDelete }: Pro
           {product.description && (
             <div className="mt-3 text-gray-700">{product.description}</div>
           )}
+          {product.ingredients && (
+              <div className="text-gray-700">
+                <strong>Thành phần:</strong> {product.ingredients}
+              </div>
+          )}
+
+          <div className="text-sm text-gray-600">
+            Ngày sản xuất: {formatDate(product.manufactureDate)}
+          </div>
+
+          <div className="text-sm text-gray-600">
+            Hạn sử dụng: {formatDate(product.expiryDate)}
+          </div>
           <div className="mt-4 flex gap-2">
             <button onClick={() => onEdit(product.id)} className="text-yellow-600">Sửa</button>
             <button onClick={() => onDelete(product.id)} className="text-red-600">Xóa</button>

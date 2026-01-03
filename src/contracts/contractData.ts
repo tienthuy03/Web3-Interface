@@ -1,4 +1,4 @@
-export const CONTRACT_ADDRESS = "0x0239f7D9536427299ce4Bee0f1D7e9243B1BfA96"
+export const CONTRACT_ADDRESS = "0x081d9ff472e1b25b8820e9a17b2598f52132ccf8"
 
 // Minimal ABI snippets for common read methods used by the UI.
 // Replace or extend with the real contract ABI when available.

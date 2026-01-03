@@ -1,4 +1,7 @@
 import React, { useState } from 'react'
+import { ethers } from "ethers"
+import {toTimestamp} from "../utils/help.tsx";
+import { ABI, CONTRACT_ADDRESS } from '../contracts/contractData.ts'
 
 type Product = {
   id: string
@@ -16,6 +19,48 @@ type Props = {
   onCancel: () => void
 }
 
+export async function createProductOnChain(form: {
+  name: string
+  description?: string
+  ingredients?: string
+  manufactureDate?: string
+  expiryDate?: string
+  price: number
+}) {
+  if (!window.ethereum) {
+    alert("Vui lòng cài MetaMask")
+    return
+  }
+
+  // Request wallet
+  await window.ethereum.request({ method: "eth_requestAccounts" })
+
+  const provider = new ethers.BrowserProvider(window.ethereum)
+  const signer = await provider.getSigner()
+
+  const contract = new ethers.Contract(
+      CONTRACT_ADDRESS,
+      ABI,
+      signer
+  )
+
+  const tx = await contract.createProduct(
+      form.name,
+      form.description ?? "",
+      form.ingredients ?? "",
+      toTimestamp(form.manufactureDate!),
+      toTimestamp(form.expiryDate!),
+      ethers.parseUnits(form.price.toString(), 0) // VND integer
+  )
+
+  console.log("⏳ Tx hash:", tx.hash)
+
+  const receipt = await tx.wait()
+  console.log("✅ Tx confirmed:", receipt)
+
+  return receipt
+}
+
 export default function ProductForm({ initial = {}, onSave, onCancel }: Props) {
   const [name, setName] = useState(initial.name ?? '')
   const [price, setPrice] = useState(initial.price ?? 0)
@@ -24,10 +69,25 @@ export default function ProductForm({ initial = {}, onSave, onCancel }: Props) {
   const [manufactureDate, setManufactureDate] = useState('')
   const [expiryDate, setExpiryDate] = useState('')
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) return
-    onSave({ id: initial.id, name: name.trim(), price: Number(price), description: description.trim(), ingredients: ingredients.trim(), manufactureDate: Number(manufactureDate), expiryDate: Number(expiryDate) })
+
+    try {
+      await createProductOnChain({
+        name: name.trim(),
+        description: description.trim(),
+        ingredients: ingredients.trim(),
+        manufactureDate,
+        expiryDate,
+        price
+      })
+
+      alert("🎉 Tạo sản phẩm thành công")
+    } catch (err) {
+      console.error(err)
+      alert("❌ Tạo sản phẩm thất bại")
+    }
   }
 
   return (

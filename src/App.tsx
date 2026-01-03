@@ -2,7 +2,7 @@
 // export default App
 import { createWeb3Modal, defaultConfig, useWeb3Modal, useWeb3ModalAccount, useWeb3ModalProvider } from '@web3modal/ethers/react'
 import { shortenAddr } from './lib/utils';
-import { contractABI, contractAddr } from './contracts/contractData';
+import { ABI, CONTRACT_ADDRESS } from './contracts/contractData';
 import { ExternalLink } from 'lucide-react';
 import { BrowserProvider, Contract, formatEther, formatUnits, parseEther } from 'ethers';
 import { useEffect, useState } from 'react';
@@ -82,8 +82,8 @@ function App() {
     if (walletProvider) {
       const ethersProvider = new BrowserProvider(walletProvider);
 
-      const contract = new Contract(contractAddr, contractABI, ethersProvider);
-      const contractBalance = await ethersProvider.getBalance(contractAddr);
+      const contract = new Contract(CONTRACT_ADDRESS, ABI, ethersProvider);
+      const contractBalance = await ethersProvider.getBalance(CONTRACT_ADDRESS);
       const fundedFilter = contract.filters.Funded;
       const fundedEvents = await contract.queryFilter(fundedFilter, 10000)
       const fundedEventFormated = [];
@@ -114,7 +114,7 @@ function App() {
     if (walletProvider) {
       const ethersProvider = new BrowserProvider(walletProvider);
       const singer = await ethersProvider.getSigner();
-      const contract = new Contract(contractAddr, contractABI, singer);
+      const contract = new Contract(CONTRACT_ADDRESS, ABI, singer);
       const tx = contract.fund({ value: parseEther(String(amoutFund)) });
       console.log("tx: ", tx);
 
@@ -179,9 +179,9 @@ function App() {
         <div className='flex justify-between items-center'>
           <div className='flex items-center gap-2'>
             <h1 className='text-xl font-bold'>Crowdfunding</h1>
-            <a className='flex items-center gap-1 text-sm hover:bg-gray-200 p-1 rounded-lg' href={`https://sepolia.etherscan.io/address/${contractAddr}`}
+            <a className='flex items-center gap-1 text-sm hover:bg-gray-200 p-1 rounded-lg' href={`https://sepolia.etherscan.io/address/${CONTRACT_ADDRESS}`}
               target="_blank">
-              {shortenAddr(contractAddr)}
+              {shortenAddr(CONTRACT_ADDRESS)}
               <ExternalLink className='w-3 h-3' />
             </a>
 
@@ -235,9 +235,9 @@ function App() {
                 <div className="font-semibold">Business</div>
                 {/* <div className="text-xs text-gray-500">Admin panel</div> */}
                 <div className='flex items-center gap-2'>
-                  <a className='flex items-center gap-1 text-sm hover:bg-gray-200 p-1 rounded-lg' href={`https://sepolia.etherscan.io/address/${contractAddr}`}
+                  <a className='flex items-center gap-1 text-sm hover:bg-gray-200 p-1 rounded-lg' href={`https://sepolia.etherscan.io/address/${CONTRACT_ADDRESS}`}
                     target="_blank">
-                    {shortenAddr(contractAddr)}
+                    {shortenAddr(CONTRACT_ADDRESS)}
                     <ExternalLink className='w-3 h-3' />
                   </a>
 
@@ -283,9 +283,9 @@ function App() {
               <div className='flex justify-between items-center'>
                 <div className='flex items-center gap-2'>
                   {/* <h1 className='text-xl font-bold'>Crowdfunding</h1>
-                  <a className='flex items-center gap-1 text-sm hover:bg-gray-200 p-1 rounded-lg' href={`https://sepolia.etherscan.io/address/${contractAddr}`}
+                  <a className='flex items-center gap-1 text-sm hover:bg-gray-200 p-1 rounded-lg' href={`https://sepolia.etherscan.io/address/${CONTRACT_ADDRESS}`}
                     target="_blank">
-                    {shortenAddr(contractAddr)}
+                    {shortenAddr(CONTRACT_ADDRESS)}
                     <ExternalLink className='w-3 h-3' />
                   </a> */}
                   <div>

@@ -1,7 +1,8 @@
-export const contractAddr = "0x8B51111571F6F874d39915e8D0C7460D38D28785"
+export const CONTRACT_ADDRESS = "0x0239f7D9536427299ce4Bee0f1D7e9243B1BfA96"
 
 // Minimal ABI snippets for common read methods used by the UI.
 // Replace or extend with the real contract ABI when available.
-export const contractABI = [
+export const ABI = [
+    "function createProduct(string,string,string,uint256,uint256,uint256) public returns (uint256)"
 
 ]

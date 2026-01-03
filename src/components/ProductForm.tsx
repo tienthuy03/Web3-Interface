@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { ethers } from "ethers"
-import {toTimestamp} from "../utils/help.tsx";
+import { toTimestamp } from "../utils/help.tsx";
 import { ABI, CONTRACT_ADDRESS } from '../contracts/contractData.ts'
+import toast from 'react-hot-toast';
 
 type Product = {
   id: string
@@ -39,18 +40,18 @@ export async function createProductOnChain(form: {
   const signer = await provider.getSigner()
 
   const contract = new ethers.Contract(
-      CONTRACT_ADDRESS,
-      ABI,
-      signer
+    CONTRACT_ADDRESS,
+    ABI,
+    signer
   )
 
   const tx = await contract.createProduct(
-      form.name,
-      form.description ?? "",
-      form.ingredients ?? "",
-      toTimestamp(form.manufactureDate!),
-      toTimestamp(form.expiryDate!),
-      ethers.parseUnits(form.price.toString(), 0) // VND integer
+    form.name,
+    form.description ?? "",
+    form.ingredients ?? "",
+    toTimestamp(form.manufactureDate!),
+    toTimestamp(form.expiryDate!),
+    ethers.parseUnits(form.price.toString(), 0) // VND integer
   )
 
   console.log("⏳ Tx hash:", tx.hash)
@@ -83,10 +84,25 @@ export default function ProductForm({ initial = {}, onSave, onCancel }: Props) {
         price
       })
 
-      alert("🎉 Tạo sản phẩm thành công")
+      // Notify parent to update local list immediately
+      onSave({
+        id: initial.id,
+        name: name.trim(),
+        price,
+        description: description.trim(),
+        ingredients: ingredients.trim(),
+        manufactureDate: manufactureDate ? Date.parse(manufactureDate) : undefined,
+        expiryDate: expiryDate ? Date.parse(expiryDate) : undefined,
+      })
+
+      // alert("🎉 Tạo sản phẩm thành công")
+      toast.success("🎉 Tạo sản phẩm thành công")
+
     } catch (err) {
       console.error(err)
-      alert("❌ Tạo sản phẩm thất bại")
+      // alert("❌ Tạo sản phẩm thất bại")
+      toast.success("❌ Tạo sản phẩm thất bại")
+
     }
   }
 
@@ -111,10 +127,10 @@ export default function ProductForm({ initial = {}, onSave, onCancel }: Props) {
         <div>
           <label className="block text-sm font-medium mb-1">Thành phần</label>
           <textarea
-              value={ingredients}
-              onChange={e => setIngredients(e.target.value)}
-              className="w-full border rounded-md px-3 py-2 shadow-sm focus:ring-2 focus:ring-blue-200"
-              rows={2}
+            value={ingredients}
+            onChange={e => setIngredients(e.target.value)}
+            className="w-full border rounded-md px-3 py-2 shadow-sm focus:ring-2 focus:ring-blue-200"
+            rows={2}
           />
         </div>
 
@@ -122,9 +138,9 @@ export default function ProductForm({ initial = {}, onSave, onCancel }: Props) {
         <div>
           <label className="block text-sm font-medium mb-1">Ngày sản xuất</label>
           <input
-              type="date"
-              onChange={e => setManufactureDate(e.target.value)}
-              className="w-full border rounded-md px-3 py-2 shadow-sm focus:ring-2 focus:ring-blue-200"
+            type="date"
+            onChange={e => setManufactureDate(e.target.value)}
+            className="w-full border rounded-md px-3 py-2 shadow-sm focus:ring-2 focus:ring-blue-200"
           />
         </div>
 
@@ -132,9 +148,9 @@ export default function ProductForm({ initial = {}, onSave, onCancel }: Props) {
         <div>
           <label className="block text-sm font-medium mb-1">Ngày hết hạn</label>
           <input
-              type="date"
-              onChange={e => setExpiryDate(e.target.value)}
-              className="w-full border rounded-md px-3 py-2 shadow-sm focus:ring-2 focus:ring-blue-200"
+            type="date"
+            onChange={e => setExpiryDate(e.target.value)}
+            className="w-full border rounded-md px-3 py-2 shadow-sm focus:ring-2 focus:ring-blue-200"
           />
         </div>
 

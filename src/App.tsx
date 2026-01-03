@@ -11,6 +11,7 @@ import TransactionList from './components/TransactionList';
 import ProductDetail from './components/ProductDetail';
 import ProductForm from './components/ProductForm';
 import ProductList from './components/ProductList';
+import ScannedPage from './components/ScannedPage';
 import { getProductsFromChain } from './contracts/contractInteraction'
 
 type Product = {
@@ -149,7 +150,8 @@ function App() {
   const [transactions, setTransactions] = useState<Transaction[]>(sampleTransactions)
   const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null)
   const selectedTransaction = transactions.find(t => t.id === selectedTransactionId) ?? null
-  const [menu, setMenu] = useState<'products' | 'transactions'>('products')
+  const [menu, setMenu] = useState<'products' | 'transactions' | 'analytics'>('products')
+  const [scannedData, setScannedData] = useState<any | null>(null)
   // Product handlers
   const handleAddProduct = () => {
     setIsAddingProduct(true)
@@ -186,6 +188,8 @@ function App() {
     setTransactions(prev => prev.filter(t => t.id !== id))
     if (selectedTransactionId === id) setSelectedTransactionId(null)
   }
+
+
   return (
     <div className="h-screen bg-gray-50">
       <div className="h-full flex">
@@ -213,7 +217,7 @@ function App() {
                 <button onClick={() => setMenu('transactions')} className={`w-full text-left px-3 py-2 rounded ${menu === 'transactions' ? 'bg-blue-50 text-blue-600 font-medium' : 'hover:bg-gray-100'}`}>Transactions</button>
               </li>
               <li>
-                <button className="w-full text-left px-3 py-2 rounded hover:bg-gray-100">Analytics</button>
+                <button onClick={() => setMenu('analytics')} className={`w-full text-left px-3 py-2 rounded ${menu === 'analytics' ? 'bg-blue-50 text-blue-600 font-medium' : 'hover:bg-gray-100'}`}>Analytics</button>
               </li>
               <li>
                 <button className="w-full text-left px-3 py-2 rounded hover:bg-gray-100">Messages</button>
@@ -238,10 +242,23 @@ function App() {
                 </div>
               </div>
 
-              <button className="bg-slate-900 text-white py-2 px-4 rounded-lg hover:bg-slate-800 transition-colors"
-                onClick={() => open()}>
-                {isConnected ? `${shortenAddr(address)}` : "Connect Wallet"}
-              </button>
+              <div className="flex items-center gap-2">
+                <button className="bg-slate-900 text-white py-2 px-4 rounded-lg hover:bg-slate-800 transition-colors"
+                  onClick={() => open()}>
+                  {isConnected ? `${shortenAddr(address)}` : "Connect Wallet"}
+                </button>
+
+                <button
+                  className="bg-blue-600 text-white py-2 px-3 rounded-lg hover:bg-blue-500 text-sm"
+                  onClick={() => {
+                    const demo = selectedProduct ?? product ?? { id: 'demo', name: 'Demo Product', price: 123000 }
+                    setScannedData(demo as any)
+                    setMenu('analytics')
+                  }}
+                >
+                  Show QR (dev)
+                </button>
+              </div>
             </div>
 
           </header >
@@ -265,7 +282,7 @@ function App() {
             </div>
           </div>
           {/* Content area: render by menu selection */}
-          {menu === 'products' ? (
+          {menu === 'products' && (
             <div className="grid grid-cols-3 gap-6 h-[calc(100vh-260px)]">
               <div className="col-span-2 bg-white rounded shadow overflow-auto">
                 <ProductList
@@ -296,11 +313,22 @@ function App() {
                   </div>
                 )}
                 {!isAddingProduct && !editingProductId && (
-                  <ProductDetail product={selectedProduct} onBack={() => setSelectedProductId(null)} onEdit={id => handleEditProduct(id)} onDelete={id => handleDeleteProduct(id)} />
+                  <ProductDetail
+                    product={selectedProduct}
+                    onBack={() => setSelectedProductId(null)}
+                    onEdit={id => handleEditProduct(id)}
+                    onDelete={id => handleDeleteProduct(id)}
+                    onScanClick={(p) => {
+                      setScannedData(p)
+                      setMenu('analytics')
+                    }}
+                  />
                 )}
               </div>
             </div>
-          ) : (
+          )}
+
+          {menu === 'transactions' && (
             <div className="grid grid-cols-3 gap-6 h-[calc(100vh-260px)]">
               <div className="col-span-2 bg-white rounded shadow overflow-auto">
                 <TransactionList transactions={transactions} onSelect={handleSelectTransaction} onDelete={handleDeleteTransaction} />
@@ -310,10 +338,34 @@ function App() {
               </div>
             </div>
           )}
+
+          {menu === 'analytics' && (
+            <div className="bg-gray-50 min-h-[calc(100vh-260px)]">
+              {scannedData ? <ScannedPage product={scannedData} /> : (
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold">Analytics</h3>
+                  <div className="text-sm text-gray-500 mt-2">Chưa có dữ liệu quét — nhấn "Show QR (dev)" hoặc click mã QR của sản phẩm.</div>
+                </div>
+              )}
+            </div>
+          )}
         </main>
       </div>
     </div>
   );
 }
 export default App;
+const product = {
+  id: 1,
+  name: "test",
+  price: 11222,
+  description: "1",
+  ingredients: "test",
+  manufactureDate: 1767225600,
+  expiryDate: 1768262400,
+  createdAt: 1767446796,
+  owner: "0x03ea79Ea20e58e2dFDa89dCaabddB58898588FaC",
+  status: 0,
+  imageUrl: "" // sau này gắn link ảnh
+}
 

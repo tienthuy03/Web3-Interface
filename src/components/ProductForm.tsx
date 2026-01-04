@@ -1,9 +1,14 @@
 import React, { useState } from 'react'
 import toast from 'react-hot-toast'
+import { ethers } from "ethers"
+import { toTimestamp } from "../utils/help.tsx";
+import { ABI, CONTRACT_ADDRESS } from '../contracts/contractData.ts'
+import { uploadFile } from '../utils/fileUpload.tsx'
+import type { ProductFormData } from '@/types/product'
 
 type Props = {
-  initial?: any
-  onSave: (data: any) => void
+  initial?: Partial<ProductFormData>
+  onSave: (data: ProductFormData) => Promise<void>
   onCancel: () => void
   asModal?: boolean
 }
@@ -13,6 +18,78 @@ const BRAND_OPTIONS = ['Thương hiệu A', 'Thương hiệu B', 'Thương hiệ
 const COUNTRY_OPTIONS = ['Việt Nam', 'Thái Lan', 'Nhật Bản', 'Mỹ']
 const CURRENCY_OPTIONS = ['VND', 'USD']
 
+
+export async function createProductOnChain(form: {
+  sku: string,
+  batchNumber: string,
+  category?: string,
+  brand?: string,
+  originCountry?: string,
+  name: string,
+  description?: string,
+  ingredients?: string,
+  currency?: string,
+  manufactureDate?: string,
+  expiryDate?: string,
+  price: number,
+  imageFile?: string,
+  documentFile?: string,
+}) {
+  if (!window.ethereum) {
+    alert("Vui lòng cài MetaMask")
+    return
+  }
+
+  const provider = new ethers.BrowserProvider(window.ethereum)
+  const signer = await provider.getSigner()
+  const userAddress = await signer.getAddress()
+
+  const contract = new ethers.Contract(
+      CONTRACT_ADDRESS,
+      ABI,
+      signer
+  )
+
+  const role = await contract.roles(userAddress)
+  if (role !== 1n) {
+    throw new Error("Chỉ Manufacturer mới được tạo sản phẩm")
+  }
+
+  const manufactureTs = toTimestamp(form.manufactureDate!)
+  const expiryTs = toTimestamp(form.expiryDate!)
+  const now = BigInt(Math.floor(Date.now() / 1000))
+
+  if (manufactureTs > now) {
+    throw new Error("Manufacture date is in the future")
+  }
+
+  if (expiryTs <= manufactureTs) {
+    throw new Error("Invalid expiry date")
+  }
+  const tx = await contract.createProduct(
+      form.sku,
+      form.batchNumber,
+      form.category,
+      form.brand,
+      form.originCountry,
+      form.name,
+      form.description ?? "",
+      form.ingredients ?? "",
+      toTimestamp(form.manufactureDate!),
+      toTimestamp(form.expiryDate!),
+      ethers.parseUnits(form.price.toString(), 0),
+      form.currency,
+      form.imageFile,
+      form.documentFile,
+  )
+
+  console.log("⏳ Tx hash:", tx.hash)
+
+  const receipt = await tx.wait()
+  console.log("✅ Tx confirmed:", receipt)
+
+  return receipt
+}
 export default function ProductForm({ initial = {}, onSave, onCancel, asModal = false }: Props) {
   const [sku, setSku] = useState(initial.sku ?? '')
   const [batchNumber, setBatchNumber] = useState(initial.batchNumber ?? '')
@@ -29,31 +106,41 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [documentFile, setDocumentFile] = useState<File | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!sku || !batchNumber || !name) {
       return toast.error('Vui lòng nhập đầy đủ thông tin bắt buộc')
     }
 
-    onSave({
-      sku,
-      batchNumber,
-      category,
-      brand,
-      originCountry,
-      name,
-      description,
-      ingredients,
-      manufactureDate: manufactureDate ? Date.parse(manufactureDate) : undefined,
-      expiryDate: expiryDate ? Date.parse(expiryDate) : undefined,
-      price,
-      currency,
-      imageFile,
-      documentFile
-    })
+    let imageFilePath = ''
+    let documentFilePath = ''
+    if (imageFile) imageFilePath = await uploadFile(imageFile)
+    if (documentFile) documentFilePath = await uploadFile(documentFile)
 
-    toast.success('🎉 Lưu sản phẩm thành công')
+    console.log(imageFile, documentFile)
+    try {
+      await createProductOnChain({
+        sku,
+        batchNumber,
+        category,
+        brand,
+        originCountry,
+        name: name.trim(),
+        description: description.trim(),
+        ingredients: ingredients.trim(),
+        manufactureDate: manufactureDate,
+        expiryDate: expiryDate,
+        price,
+        currency,
+        imageFile: imageFilePath,
+        documentFile: documentFilePath
+      })
+      toast.success('🎉 Lưu sản phẩm thành công')
+    } catch (err) {
+      console.error(err)
+      toast.error('❌ Tạo sản phẩm thất bại')
+    }
   }
 
   const form = (

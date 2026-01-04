@@ -1,6 +1,7 @@
 
-export const toTimestamp = (date: string) =>
-    Math.floor(new Date(date).getTime() / 1000)
+export const toTimestamp = (date: string): bigint =>
+    BigInt(Math.floor(new Date(date).getTime() / 1000))
+
 
 export function formatDateFromSeconds(seconds?: number | string) {
     if (!seconds) return "-";

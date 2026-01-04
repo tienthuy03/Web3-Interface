@@ -11,6 +11,7 @@ type Product = {
   expiryDate?: number
   status?: number
   image?: string
+  imageUrl?: string
 }
 
 
@@ -116,11 +117,23 @@ export default function ProductList({
                   >
                     {/* IMAGE */}
                     <td className="px-4 py-3 align-top">
-                      {p.image ? (
+                      {(p.image || p.imageUrl) ? (
                         <img
-                          src={p.image}
+                          src={p.image || p.imageUrl}
                           alt={p.name}
                           className="w-10 h-10 rounded object-cover border"
+                          onError={(e) => {
+                            // Fallback to initials if image fails to load
+                            const target = e.target as HTMLImageElement
+                            target.style.display = 'none'
+                            const parent = target.parentElement
+                            if (parent) {
+                              const fallback = document.createElement('div')
+                              fallback.className = "w-10 h-10 rounded bg-blue-50 text-blue-600 flex items-center justify-center font-semibold"
+                              fallback.textContent = getInitials(p.name)
+                              parent.appendChild(fallback)
+                            }
+                          }}
                         />
                       ) : (
                         <div className="w-10 h-10 rounded bg-blue-50 text-blue-600 flex items-center justify-center font-semibold">

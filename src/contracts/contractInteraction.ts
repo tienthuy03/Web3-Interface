@@ -1,104 +1,64 @@
-// import { ethers } from "ethers"
-// import { CONTRACT_ADDRESS, ABI } from "./contractData"
 
-// export async function getProvider() {
-//   if (typeof window !== "undefined" && (window as any).ethereum) {
-//     const browserProvider = new ethers.BrowserProvider((window as any).ethereum)
-//     try {
-//       await (window as any).ethereum.request({ method: "eth_requestAccounts" })
-//     } catch (e) { }
-//     return browserProvider
-//   }
-//   return ethers.getDefaultProvider()
-// }
-
-// function getContract(providerOrSigner: any) {
-//   return new ethers.Contract(CONTRACT_ADDRESS, ABI, providerOrSigner)
-// }
-
-// /**
-//  * Try to read products from the contract.
-//  * Works with either a `getProducts()` view that returns an array,
-//  * or a pair of methods like `productsCount()` + `products(i)`.
-//  */
-// export async function getProductsFromChain(): Promise<any[]> {
-//   const provider = await getProvider()
-//   const contract = getContract(provider)
-
-//   // Try getProducts() first
-//   try {
-//     const res: any = await contract.getProducts()
-//     if (Array.isArray(res)) {
-//       return res.map((p: any, idx: number) => {
-//         const obj = p && typeof p === 'object' ? p : {}
-//         return {
-//           id: obj.id?.toString() ?? (obj[0]?.toString() ?? String(idx)),
-//           name: obj.name ?? obj[1] ?? '',
-//           description: obj.description ?? obj[2] ?? '',
-//           ingredients: obj.ingredients ?? obj[3] ?? '',
-//           manufactureDate: obj.manufactureDate ? Number(obj.manufactureDate.toString()) : (obj[4] ? Number(obj[4].toString()) : 0),
-//           expiryDate: obj.expiryDate ? Number(obj.expiryDate.toString()) : (obj[5] ? Number(obj[5].toString()) : 0),
-//           price: (() => {
-//             try { return Number(ethers.formatUnits(obj.price ?? obj[6] ?? 0, 0)) } catch { return Number((obj.price ?? obj[6] ?? 0).toString()) }
-//           })(),
-//         }
-//       })
-//     }
-//   } catch (e) {
-//     // continue to fallback
-//   }
-
-//   // Fallback: try to read count and iterate products(i)
-//   const countNames = ['getProductsLength', 'productsCount', 'productsLength', 'getProductsCount', 'productCount', 'getProductCount']
-//   for (const name of countNames) {
-//     const fn = (contract as any)[name]
-//     if (typeof fn === 'function') {
-//       try {
-//         const c: any = await fn()
-//         const count = Number(c.toString())
-//         const arr: any[] = []
-//         for (let i = 0; i < count; i++) {
-//           const p = await (contract as any).products(i)
-//           arr.push(p)
-//         }
-//         return arr.map((p: any, idx: number) => ({
-//           id: p.id?.toString() ?? (p[0]?.toString() ?? String(idx)),
-//           name: p.name ?? p[1] ?? '',
-//           description: p.description ?? p[2] ?? '',
-//           ingredients: p.ingredients ?? p[3] ?? '',
-//           manufactureDate: p.manufactureDate ? Number(p.manufactureDate.toString()) : (p[4] ? Number(p[4].toString()) : 0),
-//           expiryDate: p.expiryDate ? Number(p.expiryDate.toString()) : (p[5] ? Number(p[5].toString()) : 0),
-//           price: (() => { try { return Number(ethers.formatUnits(p.price ?? p[6] ?? 0, 0)) } catch { return Number((p.price ?? p[6] ?? 0).toString()) } })(),
-//         }))
-//       } catch (e) {
-//         // ignore and try next
-//       }
-//     }
-//   }
-
-//   // If all attempts fail, return empty array
-//   return []
-// }
-
-// export default {
-//   getProvider,
-//   getProductsFromChain,
-// }
 import { ethers } from "ethers"
 import { CONTRACT_ADDRESS, ABI } from "./contractData"
 
 /**
- * Get provider (BrowserProvider nếu có wallet, fallback default)
+ * Get provider (BrowserProvider nếu có wallet, fallback default với RPC)
  */
 export async function getProvider() {
+  // Try to use wallet provider if available
   if (typeof window !== "undefined" && (window as any).ethereum) {
-    const browserProvider = new ethers.BrowserProvider((window as any).ethereum)
     try {
-      await (window as any).ethereum.request({ method: "eth_requestAccounts" })
-    } catch (e) { }
-    return browserProvider
+      const browserProvider = new ethers.BrowserProvider((window as any).ethereum)
+      // Don't request accounts for read-only operations
+      return browserProvider
+    } catch (e) {
+      console.log("Wallet provider failed, using RPC:", e)
+    }
   }
-  return ethers.getDefaultProvider()
+
+  // Use RPC provider for read-only operations (works without wallet)
+  const rpcUrl = import.meta.env.VITE_ETH_SEPOLIA_RPC_URL
+  console.log('🔧 getProvider: RPC URL from env:', rpcUrl ? 'Found' : 'Not found')
+
+  if (rpcUrl) {
+    try {
+      console.log('🔧 getProvider: Using custom RPC:', rpcUrl)
+      return new ethers.JsonRpcProvider(rpcUrl)
+    } catch (err) {
+      console.error('❌ getProvider: Failed to create custom RPC provider:', err)
+    }
+  }
+
+  // Fallback to public RPC providers
+  console.log('🔧 getProvider: Using public Sepolia RPC')
+  try {
+    // Try multiple public RPC endpoints
+    const publicRpcs = [
+      'https://rpc.sepolia.org',
+      'https://sepolia.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161', // Public Infura key
+      'https://ethereum-sepolia-rpc.publicnode.com'
+    ]
+
+    for (const rpc of publicRpcs) {
+      try {
+        const provider = new ethers.JsonRpcProvider(rpc)
+        // Test connection
+        await provider.getBlockNumber()
+        console.log('✅ getProvider: Connected to public RPC:', rpc)
+        return provider
+      } catch (err) {
+        console.log('⚠️ getProvider: Failed to connect to:', rpc)
+        continue
+      }
+    }
+  } catch (err) {
+    console.error('❌ getProvider: All RPC providers failed:', err)
+  }
+
+  // Last resort: default provider
+  console.log('🔧 getProvider: Using ethers default provider')
+  return ethers.getDefaultProvider("sepolia")
 }
 
 /**
@@ -113,64 +73,214 @@ function getContract(providerOrSigner: any) {
  * uses: products(uint256)
  */
 export async function getProductFromChain(productId: number) {
-  const provider = await getProvider()
-  const contract = getContract(provider)
+  try {
+    console.log(`🔍 getProductFromChain: Starting for product ID: ${productId}`)
 
-  const p: any = await contract.products(productId)
+    const provider = await getProvider()
+    if (!provider) {
+      throw new Error('Không thể kết nối đến blockchain. Vui lòng kiểm tra RPC hoặc kết nối mạng.')
+    }
+    console.log('✅ getProductFromChain: Provider obtained:', provider)
 
-  return {
-    id: Number(p[0]),
-    name: p[1],
-    description: p[2],
-    ingredients: p[3],
-    manufactureDate: Number(p[4]),
-    expiryDate: Number(p[5]),
-    price: Number(p[6]), // nếu là wei thì format ngoài UI
-    owner: p[7],
-    status: Number(p[8]),
-    createdAt: Number(p[9]),
+    const contract = getContract(provider)
+    console.log('✅ getProductFromChain: Contract instance created')
+
+    // Check if product exists by checking productCounter
+    try {
+      const totalProducts = await contract.productCounter()
+      const count = Number(totalProducts)
+      console.log(`📊 getProductFromChain: Total products on chain: ${count}`)
+      
+      if (productId < 1 || productId > count) {
+        throw new Error(`Sản phẩm ID ${productId} không tồn tại. Tổng số sản phẩm: ${count}`)
+      }
+    } catch (counterErr: any) {
+      console.warn('⚠️ getProductFromChain: Could not check productCounter, continuing anyway:', counterErr)
+      // Continue anyway, contract.products() will throw if product doesn't exist
+    }
+
+    console.log(`📡 getProductFromChain: Calling contract.products(${productId})`)
+    const p: any = await contract.products(productId)
+    console.log('📦 getProductFromChain: Raw product data received:', p)
+    console.log('📦 getProductFromChain: Data type:', typeof p, 'Is array:', Array.isArray(p))
+
+    // Check if product data is valid (not all zeros/empty)
+    if (!p || (Array.isArray(p) && p.length === 0)) {
+      throw new Error(`Sản phẩm ID ${productId} không có dữ liệu`)
+    }
+
+    // Map according to actual contract schema from the image:
+    // id, sku, batchNumber, category, brand, originCountry, name, description, ingredients,
+    // manufactureDate, expiryDate, price, currency, owner, scanCount, lastScannedAt,
+    // imageURI, documentURI, status, createdAt
+    const mapped = {
+      id: Number(p[0]) || productId,
+      sku: p[1] || '',
+      batchId: p[2] || '',
+      batchNumber: p[2] || '',
+      category: p[3] || '',
+      brand: p[4] || '',
+      origin: p[5] || '',
+      originCountry: p[5] || '',
+      name: p[6] || p[3] || '', // Use category as fallback if name is empty/placeholder
+      description: p[7] || '',
+      ingredients: p[8] || '',
+      manufactureDate: Number(p[9]) || 0,
+      expiryDate: Number(p[10]) || 0,
+      price: Number(p[11]) || 0,
+      currency: p[12] || 'VND',
+      owner: p[13] || '',
+      scanCount: Number(p[14]) || 0,
+      lastScannedAt: Number(p[15]) || 0,
+      imageUrl: p[16] || '',
+      imageURI: p[16] || '',
+      documentUrl: p[17] || '',
+      documentURI: p[17] || '',
+      status: Number(p[18]) || 0,
+      createdAt: Number(p[19]) || 0,
+    }
+
+    console.log('✅ getProductFromChain: Mapped product:', mapped)
+
+    // Validate that we got at least some data
+    if (mapped.id === undefined || mapped.id === null) {
+      throw new Error(`Sản phẩm ID ${productId} trả về dữ liệu không hợp lệ: thiếu ID`)
+    }
+
+    // Check if product owner is zero address (product might not exist)
+    if (mapped.owner === '0x0000000000000000000000000000000000000000' || !mapped.owner) {
+      console.warn('⚠️ getProductFromChain: Product owner is zero address, product might not exist')
+    }
+
+    return mapped
+  } catch (err: any) {
+    console.error('❌ getProductFromChain: Error details:', err)
+    console.error('❌ getProductFromChain: Error message:', err?.message)
+    console.error('❌ getProductFromChain: Error code:', err?.code)
+    console.error('❌ getProductFromChain: Error data:', err?.data)
+    
+    // Handle specific error cases
+    if (err?.message?.includes('execution reverted') || err?.code === 'CALL_EXCEPTION') {
+      throw new Error(`Sản phẩm ID ${productId} không tồn tại trên blockchain`)
+    }
+    
+    if (err?.message?.includes('network') || err?.code === 'NETWORK_ERROR') {
+      throw new Error('Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet hoặc RPC endpoint.')
+    }
+
+    throw new Error(`Không thể tải sản phẩm ${productId}: ${err?.message || 'Lỗi không xác định'}`)
   }
 }
 
 /**
  * 🔹 Get ALL products from chain
  * Compatible with:
- * - productCounter() + products(id)
+ * - getAllProducts() (preferred)
+ * - productCounter() + products(id) (fallback)
  */
-export async function getProductsFromChain(): Promise<any[]> {
-  const provider = await getProvider()
-  const contract = getContract(provider)
+export async function getProductsFromChain(provider?: any): Promise<any[]> {
+  try {
+    // Use provided provider or get default provider
+    const finalProvider = provider || await getProvider()
+    const contract = getContract(finalProvider)
 
-  // Ưu tiên đúng theo contract của bạn
-  if (typeof (contract as any).productCounter === "function") {
-    const total: any = await contract.productCounter()
-    const count = Number(total.toString())
-    const list: any[] = []
+    // Try getAllProducts() first (more efficient)
+    try {
+      console.log("🔄 Trying getAllProducts()...")
+      const allProducts = await contract.getAllProducts()
 
-    // ⚠️ contract của bạn bắt đầu ID từ 1
-    for (let i = 1; i <= count; i++) {
-      const p: any = await contract.products(i)
+      if (Array.isArray(allProducts) && allProducts.length > 0) {
+        const mapped = allProducts.map((p: any, index: number) => {
+          // Map according to ABI: id, sku, batchCode, category, brand, origin, supplier, distributor, retailer, 
+          // manufactureDate, expiryDate, price, currency, owner, status, qualityStatus, imageUrl, documentUrl, verifyStatus, createdAt
+          return {
+            id: Number(p.id ?? p[0] ?? index + 1),
+            batchId: p.batchCode ?? p[2] ?? "",
+            productCode: p.sku ?? p[1] ?? "",
+            name: p.category ?? p[3] ?? "", // Using category as name if name not available
+            brand: p.brand ?? p[4] ?? "",
+            origin: p.origin ?? p[5] ?? "",
+            certHash: p.supplier ?? p[6] ?? "", // Using supplier as certHash placeholder
+            txHash: p.distributor ?? p[7] ?? "", // Using distributor as txHash placeholder
+            metadataHash: p.retailer ?? p[8] ?? "", // Using retailer as metadataHash placeholder
+            manufactureDate: Number(p.manufactureDate ?? p[9] ?? 0),
+            expiryDate: Number(p.expiryDate ?? p[10] ?? 0),
+            price: Number(p.price ?? p[11] ?? 0),
+            currency: p.currency ?? p[12] ?? "",
+            owner: p.owner ?? p[13] ?? "",
+            status: Number(p.status ?? p[14] ?? 0),
+            verifyStatus: Number(p.verifyStatus ?? p[18] ?? 0),
+            imageUrl: p.imageUrl ?? p[16] ?? "",
+            documentUrl: p.documentUrl ?? p[17] ?? "",
+            deleted: 0, // Not in getAllProducts ABI
+            createdAt: Number(p.createdAt ?? p[19] ?? 0),
+          }
+        })
 
-      list.push({
-        id: Number(p[0]),
-        name: p[1],
-        description: p[2],
-        ingredients: p[3],
-        manufactureDate: Number(p[4]),
-        expiryDate: Number(p[5]),
-        price: Number(p[6]),
-        owner: p[7],
-        status: Number(p[8]),
-        createdAt: Number(p[9]),
-      })
+        console.log("✅ getAllProducts() success, products:", mapped.length)
+        return mapped
+      } else {
+        console.log("ℹ️ getAllProducts() returned empty array")
+      }
+    } catch (getAllErr) {
+      console.log("⚠️ getAllProducts() failed, trying fallback method...", getAllErr)
     }
 
-    return list
-  }
+    // Fallback: use productCounter() + products(id)
+    console.log("🔄 Using productCounter() + products(id)...")
+    const total = await contract.productCounter()
+    const count = Number(total)
 
-  // fallback (nếu sau này đổi contract)
-  return []
+    console.log("📊 Total products on chain:", count)
+
+    if (count === 0) {
+      console.log("ℹ️ No products found on chain")
+      return []
+    }
+
+    const list: any[] = []
+
+    for (let i = 1; i <= count; i++) {
+      try {
+        const p = await contract.products(i)
+
+        list.push({
+          id: Number(p[0]),
+          batchId: p[1],
+          productCode: p[2],
+          name: p[3],
+          brand: p[4],
+          origin: p[5],
+          certHash: p[6],
+          txHash: p[7],
+          metadataHash: p[8],
+          manufactureDate: Number(p[9]),
+          expiryDate: Number(p[10]),
+          price: Number(p[11]),
+          currency: p[12],
+          owner: p[13],
+          status: Number(p[14]),
+          verifyStatus: Number(p[15]),
+          imageUrl: p[16],
+          documentUrl: p[17],
+          deleted: Number(p[18]),
+          createdAt: Number(p[19]),
+        })
+      } catch (err) {
+        console.error(`❌ Error fetching product ${i}:`, err)
+        // Continue with next product
+      }
+    }
+
+    console.log("✅ getProductsFromChain result:", list)
+    return list
+  } catch (err) {
+    console.error("❌ getProductsFromChain error:", err)
+    throw err
+  }
 }
+
+
 
 export default {
   getProvider,

@@ -1,5 +1,6 @@
 
 // export default App
+import { useLocation } from 'react-router-dom'
 import { createWeb3Modal, defaultConfig, useWeb3Modal, useWeb3ModalAccount, useWeb3ModalProvider } from '@web3modal/ethers/react'
 import { shortenAddr } from './lib/utils';
 import { ABI, CONTRACT_ADDRESS } from './contracts/contractData';
@@ -13,7 +14,7 @@ import ProductForm from './components/ProductForm';
 import ProductList from './components/ProductList';
 import TransferProduct from './components/TransferProduct';
 import ScannedPage from './components/ScannedPage';
-import { getProductsFromChain } from './contracts/contractInteraction'
+import { getProductsFromChain, getProductFromChain } from './contracts/contractInteraction'
 import TransferDelivery from './components/TransferDelivery';
 
 type Product = {
@@ -79,55 +80,164 @@ createWeb3Modal({
   enableAnalytics: true // false by default
 })
 function App() {
+  const location = useLocation()
   const { open } = useWeb3Modal();
   const { address, isConnected } = useWeb3ModalAccount();
   const { walletProvider } = useWeb3ModalProvider()
+
+  // If on product page route, show ScannedPage directly (for QR code scanning)
+  if (location.pathname.startsWith('/products/') || location.pathname.startsWith('/product/')) {
+    // Extract product ID from URL (if any)
+    const pathMatch = location.pathname.match(/\/(?:products?|product)\/(.+)$/)
+    const productId = pathMatch ? pathMatch[1] : '1'
+    
+    // Create a sample product for ScannedPage
+    const sampleProduct = {
+      id: parseInt(productId) || 1,
+      name: 'Sản phẩm mẫu',
+      price: 100000,
+      description: 'Thông tin sản phẩm từ QR code',
+      ingredients: '',
+      manufactureDate: Math.floor(Date.now() / 1000) - 86400 * 30, // 30 days ago
+      expiryDate: Math.floor(Date.now() / 1000) + 86400 * 365, // 1 year from now
+      createdAt: Math.floor(Date.now() / 1000) - 86400 * 30,
+      owner: '0x0000000000000000000000000000000000000000',
+      status: 0,
+      imageUrl: '',
+      category: 'Sản phẩm',
+      brand: '',
+      origin: '',
+      currency: 'VND',
+      sku: '',
+      batchNumber: '',
+    }
+    
+    return <ScannedPage product={sampleProduct} />
+  }
+
   const [crowdfundingBal, setCrowdfundingBal] = useState<string | null>(null);
   const [funderLenght, setFunderLenght] = useState<number | null>(null);
   const [amoutFund, setAmoutFund] = useState<number | null>(null);
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [selectedProductDetail, setSelectedProductDetail] = useState<any | null>(null)
   const [showDetail, setShowDetail] = useState(false)
-  console.log(amoutFund)
+
+  // const fetchContractData = async () => {
+  //   console.log("════════ fetchContractData ════════");
+
+  //   if (!walletProvider) return;
+
+  //   try {
+  //     setLoadingProducts(true); // ✅ START LOADING
+
+  //     const ethersProvider = new BrowserProvider(walletProvider);
+  //     const contract = new Contract(CONTRACT_ADDRESS, ABI, ethersProvider);
+
+  //     // ===== PRODUCTS =====
+  //     console.log("⛓ Fetching products from chain...");
+  //     const chainProducts = await getProductsFromChain();
+
+  //     console.log("📦 chainProducts =", chainProducts);
+
+  //     if (Array.isArray(chainProducts)) {
+  //       const mapped = chainProducts.map((p: any) => ({
+  //         id: p.id?.toString() ?? "",
+  //         name: p.name ?? "",
+  //         price: Number(p.price ?? 0),
+  //         description: p.description ?? "",
+  //         ingredients: p.ingredients ?? "",
+  //         manufactureDate: p.manufactureDate ? Number(p.manufactureDate) : undefined,
+  //         expiryDate: p.expiryDate ? Number(p.expiryDate) : undefined,
+  //         createdAt: p.createdAt ? Number(p.createdAt) : undefined,
+  //         owner: p.owner ?? "",
+  //         status: p.status !== undefined ? Number(p.status) : undefined,
+  //         imageUrl: p.imageUrl ?? ""
+
+  //       }));
+
+  //       setProducts(mapped);
+  //     }
+
+  //   } catch (err) {
+  //     console.error("❌ fetchContractData error", err);
+  //   } finally {
+  //     setLoadingProducts(false); // ✅ END LOADING
+  //   }
+  // };
 
   const fetchContractData = async () => {
     console.log("════════ fetchContractData ════════");
 
-    if (!walletProvider) return;
+    if (!walletProvider) {
+      console.log("❌ walletProvider NOT FOUND");
+      return;
+    }
 
     try {
-      setLoadingProducts(true); // ✅ START LOADING
+      setLoadingProducts(true);
+
+      console.log("✅ walletProvider OK");
 
       const ethersProvider = new BrowserProvider(walletProvider);
+      console.log("✅ ethersProvider OK");
+
       const contract = new Contract(CONTRACT_ADDRESS, ABI, ethersProvider);
+      console.log("✅ contract OK");
 
-      // ===== PRODUCTS =====
-      console.log("⛓ Fetching products from chain...");
-      const chainProducts = await getProductsFromChain();
+      console.log("⛓ BEFORE getProductsFromChain");
 
+      // Pass the ethersProvider to getProductsFromChain
+      const chainProducts = await getProductsFromChain(ethersProvider);
+
+      console.log("📦 AFTER getProductsFromChain");
       console.log("📦 chainProducts =", chainProducts);
 
-      if (Array.isArray(chainProducts)) {
-        const mapped = chainProducts.map((p: any) => ({
-          id: p.id?.toString() ?? "",
+      if (!Array.isArray(chainProducts)) {
+        console.error("❌ chainProducts is NOT array", chainProducts);
+        return;
+      }
+
+      const mapped = chainProducts.map((p: any, index: number) => {
+        console.log(`🔹 product[${index}] raw =`, p);
+
+        return {
+          id: p.id?.toString() ?? index.toString(),
           name: p.name ?? "",
           price: Number(p.price ?? 0),
           description: p.description ?? "",
           ingredients: p.ingredients ?? "",
           manufactureDate: p.manufactureDate ? Number(p.manufactureDate) : undefined,
           expiryDate: p.expiryDate ? Number(p.expiryDate) : undefined,
-        }));
+          createdAt: p.createdAt ? Number(p.createdAt) : undefined,
+          owner: p.owner ?? "",
+          status: p.status !== undefined ? Number(p.status) : undefined,
+          image: p.imageUrl ?? "", // Map imageUrl to image for ProductList component
+          imageUrl: p.imageUrl ?? "",
+          category: p.category ?? "",
+          brand: p.brand ?? "",
+          currency: p.currency ?? "VND",
+          // Additional blockchain fields
+          batchId: p.batchId ?? "",
+          productCode: p.productCode ?? "",
+          origin: p.origin ?? "",
+          certHash: p.certHash ?? "",
+          txHash: p.txHash ?? "",
+          metadataHash: p.metadataHash ?? "",
+          documentUrl: p.documentUrl ?? "",
+          verifyStatus: p.verifyStatus !== undefined ? Number(p.verifyStatus) : undefined,
+          deleted: p.deleted !== undefined ? Number(p.deleted) : undefined,
+        };
+      });
 
-        setProducts(mapped);
-      }
+      console.log("✅ mapped products =", mapped);
+      setProducts(mapped);
 
     } catch (err) {
-      console.error("❌ fetchContractData error", err);
+      console.error("❌ fetchContractData ERROR:", err);
     } finally {
-      setLoadingProducts(false); // ✅ END LOADING
+      setLoadingProducts(false);
     }
   };
-
 
   const handleFundToCrowdfunding = async () => {
     if (amoutFund === null || amoutFund <= 0) {
@@ -176,7 +286,7 @@ function App() {
     setSelectedProductId(null)
     setShowCreateModal(true)
   }
-  const handleSaveProduct = (data: { id?: string; name: string; price: number; description?: string; image?: string; category?: string; brand?: string; currency?: string }) => {
+  const handleSaveProduct = async (data: { id?: string; name: string; price: number; description?: string; image?: string; category?: string; brand?: string; currency?: string }) => {
     if (data.id) {
       setProducts(prev => prev.map(p => (p.id === data.id ? { ...p, name: data.name, price: data.price, description: data.description, image: data.image, ...(data.category ? { category: data.category } : {}), ...(data.brand ? { brand: data.brand } : {}), ...(data.currency ? { currency: data.currency } : {}) } : p)))
       setEditingProductId(null)
@@ -314,13 +424,16 @@ function App() {
           </div>
           {/* Content area: render by menu selection */}
           {menu === 'products' && (
-            <div className="grid grid-cols-1 gap-6 h-[calc(100vh-260px)]">
-              <div className="col-span-2 bg-white rounded shadow overflow-auto">
+            <div className="h-[calc(100vh-260px)]">
+              <div className="bg-white rounded shadow overflow-auto h-full">
                 <ProductList
                   products={products}
                   loading={loadingProducts}
                   onSelect={id => {
+                    const product = products.find(p => p.id === id);
                     setSelectedProductId(id);
+                    setSelectedProductDetail(product || null);
+                    setShowDetail(true);
                     setEditingProductId(null);
                     setIsAddingProduct(false);
                   }}
@@ -328,38 +441,7 @@ function App() {
                   onDelete={handleDeleteProduct}
                   onAdd={handleAddProduct}
                 />
-
               </div>
-              {/* <div className="col-span-1 bg-white rounded shadow overflow-auto">
-                {!isAddingProduct && !editingProductId && (
-                  <ProductDetail
-                    product={selectedProduct}
-                    role={((): 'manufacturer' | 'owner' | 'consumer' | 'viewer' => {
-                      if (!address) return 'viewer'
-                      if (selectedProduct && (selectedProduct as any).owner && address && address.toLowerCase() === (selectedProduct as any).owner.toLowerCase()) return 'owner'
-                      return 'consumer'
-                    })()}
-                    onAction={(a) => {
-                      console.log('Product action', a)
-                      if (a === 'verify') {
-                        setScannedData(selectedProduct)
-                        setMenu('analytics')
-                      }
-                      if (a === 'transfer') {
-                        // TODO: open transfer UI
-                        alert('Open transfer flow (TODO)')
-                      }
-                    }}
-                    onScanClick={(p) => {
-                      setScannedData(p)
-                      setMenu('analytics')
-                    }}
-                    onBack={() => setSelectedProductId(null)}
-                    onEdit={id => handleEditProduct(id)}
-                    onDelete={id => handleDeleteProduct(id)}
-                  />
-                )}
-              </div> */}
             </div>
           )}
 
@@ -427,25 +509,31 @@ function App() {
             />
           )}
           {showDetail && selectedProductDetail && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
               {/* overlay */}
               <div
                 className="absolute inset-0 bg-black/40"
                 onClick={() => {
                   setShowDetail(false)
                   setSelectedProductDetail(null)
+                  setSelectedProductId(null)
                 }}
               />
 
               {/* modal */}
-              <div className="relative w-full max-w-5xl max-h-[90vh] bg-white rounded-xl shadow-lg overflow-hidden">
-                <div className="h-full overflow-auto">
+              <div className="relative w-full max-w-5xl max-h-[90vh] bg-white rounded-xl shadow-lg overflow-hidden z-10 flex flex-col">
+                <div className="flex-1 overflow-y-auto">
                   <ProductDetail
-                    product={selectedProduct}
-                    role="owner"
+                    product={selectedProductDetail}
+                    role={((): 'manufacturer' | 'owner' | 'consumer' | 'viewer' => {
+                      if (!address) return 'viewer'
+                      if (selectedProductDetail && (selectedProductDetail as any).owner && address && address.toLowerCase() === (selectedProductDetail as any).owner.toLowerCase()) return 'owner'
+                      return 'consumer'
+                    })()}
                     onBack={() => {
                       setShowDetail(false)
                       setSelectedProductDetail(null)
+                      setSelectedProductId(null)
                     }}
                     onEdit={(id) => {
                       setShowDetail(false)
@@ -455,8 +543,23 @@ function App() {
                       setShowDetail(false)
                       handleDeleteProduct(id)
                     }}
-                    onAction={() => { }}
-                    onScanClick={() => { }}
+                    onAction={(a) => {
+                      console.log('Product action', a)
+                      if (a === 'verify') {
+                        setScannedData(selectedProductDetail)
+                        setShowDetail(false)
+                        setMenu('analytics')
+                      }
+                      if (a === 'transfer') {
+                        setShowDetail(false)
+                        setMenu('transfer')
+                      }
+                    }}
+                    onScanClick={(p) => {
+                      setScannedData(p)
+                      setShowDetail(false)
+                      setMenu('analytics')
+                    }}
                   />
                 </div>
               </div>

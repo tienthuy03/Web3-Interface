@@ -10,6 +10,24 @@ type Product = {
   ingredients?: string
   manufactureDate?: number
   expiryDate?: number
+  image?: string
+  imageUrl?: string
+  // Additional fields from blockchain
+  batchId?: string
+  productCode?: string
+  brand?: string
+  origin?: string
+  category?: string
+  currency?: string
+  owner?: string
+  status?: number
+  verifyStatus?: number
+  createdAt?: number
+  certHash?: string
+  txHash?: string
+  metadataHash?: string
+  documentUrl?: string
+  deleted?: number
 }
 
 type Props = {
@@ -49,17 +67,26 @@ export default function ProductDetail({ product, role = 'viewer', onAction, onSc
     ts ? new Date(ts > 1e12 ? ts : ts * 1000).toLocaleDateString('vi-VN') : '-'
 
   useEffect(() => {
-    const payload = JSON.stringify({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      description: product.description,
-      ingredients: product.ingredients,
-      manufactureDate: product.manufactureDate,
-      expiryDate: product.expiryDate
-    })
+    if (!product) return
 
-    toDataURL(payload, { width: 180, margin: 2 })
+    // Generate URL for QR code
+    // Use current hostname - if accessing via IP, it will use IP
+    // If accessing via localhost, user needs to access via network IP
+    const hostname = window.location.hostname
+    const protocol = window.location.protocol
+    const port = window.location.port ? `:${window.location.port}` : ''
+
+    // Replace localhost with actual network IP if available
+    // For mobile devices, they need to access via network IP like http://192.168.1.x:5173
+    let baseUrl = `${protocol}//${hostname}${port}`
+
+    // If on localhost, show a note that user should use network IP
+    // But we can't detect network IP from browser, so we'll use what's in the URL
+    const productUrl = `${baseUrl}/products/${product.id}`
+
+    console.log('QR Code URL:', productUrl)
+
+    toDataURL(productUrl, { width: 180, margin: 2 })
       .then(setQrDataUrl)
       .catch(() => setQrDataUrl(null))
   }, [product])
@@ -67,41 +94,73 @@ export default function ProductDetail({ product, role = 'viewer', onAction, onSc
   return (
     <div className="p-5 space-y-4">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <button onClick={onBack} className="text-sm text-gray-600 hover:underline">
-          ← Quay lại
-        </button>
-        <div className="flex gap-3">
-          <button
-            onClick={() => onEdit(product.id)}
-            className="px-3 py-1 text-sm rounded bg-yellow-50 text-yellow-700 hover:bg-yellow-100"
-          >
-            Sửa
-          </button>
-          <button
-            onClick={() => onDelete(product.id)}
-            className="px-3 py-1 text-sm rounded bg-red-50 text-red-600 hover:bg-red-100"
-          >
-            Xóa
-          </button>
-        </div>
-      </div>
-
       {/* Main card */}
       <div className="bg-white rounded-xl border shadow-sm p-5 space-y-4">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-800">{product.name}</h2>
-          {/* <div className="text-sm text-gray-500">
-            ID: <span className="font-mono">{product.id}</span>
-          </div> */}
+        {/* Product Name with Image */}
+        <div className="flex items-start gap-4">
+          {/* Small Product Image */}
+          <div className="flex-shrink-0">
+            {(product?.image || product?.imageUrl) ? (
+              <img
+                src={product?.image || product?.imageUrl}
+                alt={product?.name ?? ""}
+                className="w-20 h-20 rounded-lg object-cover border shadow-sm"
+                onError={(e) => {
+                  // Show placeholder if image fails to load
+                  const target = e.target as HTMLImageElement
+                  target.style.display = 'none'
+                  const parent = target.parentElement
+                  if (parent) {
+                    const placeholder = document.createElement('div')
+                    placeholder.className = "w-20 h-20 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center"
+                    placeholder.innerHTML = `
+                      <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                      </svg>
+                    `
+                    parent.appendChild(placeholder)
+                  }
+                }}
+              />
+            ) : (
+              <div className="w-20 h-20 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center">
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+              </div>
+            )}
+          </div>
+
+          {/* Product Name and Info */}
+          <div className="flex-1">
+            <h2 className="text-xl font-semibold text-gray-800">{product.name}</h2>
+            <div className="text-sm text-gray-500 mt-1">
+              ID: <span className="font-mono">{product.id}</span>
+              {product.productCode && (
+                <> • Mã SP: <span className="font-mono">{product.productCode}</span></>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Info grid */}
+        {/* Basic Info grid */}
         <div className="grid grid-cols-2 gap-4 text-sm">
           <Info label="Giá bán">
             <span className="font-semibold text-gray-800">
-              {formatPrice(product.price)} VND
+              {formatPrice(product.price)} {product.currency || 'VND'}
             </span>
+          </Info>
+
+          <Info label="Thương hiệu">
+            {product.brand || '-'}
+          </Info>
+
+          <Info label="Xuất xứ">
+            {product.origin || '-'}
+          </Info>
+
+          <Info label="Danh mục">
+            {product.category || '-'}
           </Info>
 
           <Info label="Ngày sản xuất">
@@ -113,6 +172,66 @@ export default function ProductDetail({ product, role = 'viewer', onAction, onSc
               {formatDate(product.expiryDate)}
             </span>
           </Info>
+
+          <Info label="Ngày tạo">
+            {formatDate(product.createdAt)}
+          </Info>
+
+          <Info label="Trạng thái">
+            <StatusBadge status={product.status} />
+          </Info>
+
+          <Info label="Trạng thái xác minh">
+            <VerifyStatusBadge verifyStatus={product.verifyStatus} />
+          </Info>
+        </div>
+
+        {/* Product Codes */}
+        {(product.batchId || product.productCode) && (
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            {product.batchId && (
+              <Info label="Mã lô">
+                <span className="font-mono text-xs">{product.batchId}</span>
+              </Info>
+            )}
+            {product.productCode && (
+              <Info label="Mã sản phẩm">
+                <span className="font-mono text-xs">{product.productCode}</span>
+              </Info>
+            )}
+          </div>
+        )}
+
+        {/* Blockchain Info */}
+        <div className="border-t pt-4">
+          <div className="text-xs font-semibold text-gray-500 mb-3">Thông tin Blockchain</div>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <Info label="Chủ sở hữu">
+              <span className="font-mono text-xs break-all">{product.owner || '-'}</span>
+            </Info>
+            {product.txHash && (
+              <Info label="Transaction Hash">
+                <span className="font-mono text-xs break-all">{product.txHash}</span>
+              </Info>
+            )}
+            {product.certHash && (
+              <Info label="Certificate Hash">
+                <span className="font-mono text-xs break-all">{product.certHash}</span>
+              </Info>
+            )}
+            {product.metadataHash && (
+              <Info label="Metadata Hash">
+                <span className="font-mono text-xs break-all">{product.metadataHash}</span>
+              </Info>
+            )}
+            {product.documentUrl && (
+              <Info label="Tài liệu">
+                <a href={product.documentUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs">
+                  Xem tài liệu
+                </a>
+              </Info>
+            )}
+          </div>
         </div>
 
         {product.ingredients && (
@@ -166,11 +285,18 @@ export default function ProductDetail({ product, role = 'viewer', onAction, onSc
           Mã QR truy xuất nguồn gốc
         </div>
         {qrDataUrl ? (
-          <img
-            src={qrDataUrl}
-            alt={`QR ${product.id}`}
-            className="mx-auto w-44 h-44"
-          />
+          <>
+            <img
+              src={qrDataUrl}
+              alt={`QR ${product.id}`}
+              className="mx-auto w-44 h-44"
+            />
+            {window.location.hostname === 'localhost' && (
+              <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+                ⚠️ Để quét trên điện thoại, truy cập app qua IP mạng (ví dụ: http://192.168.1.x:5173) thay vì localhost
+              </div>
+            )}
+          </>
         ) : (
           <div className="text-sm text-gray-400">Đang tạo QR…</div>
         )}
@@ -204,6 +330,42 @@ function InfoBlock({ label, children }: { label: string; children: React.ReactNo
         {children}
       </div>
     </div>
+  )
+}
+
+function StatusBadge({ status }: { status?: number }) {
+  const statusLabels: Record<number, { label: string; color: string }> = {
+    0: { label: 'Đang lưu hành', color: 'bg-emerald-100 text-emerald-700' },
+    1: { label: 'Đã bán', color: 'bg-yellow-100 text-yellow-700' },
+    2: { label: 'Ngừng bán', color: 'bg-gray-100 text-gray-700' },
+  }
+
+  if (status === undefined || !statusLabels[status]) {
+    return <span className="text-gray-500">-</span>
+  }
+
+  return (
+    <span className={`inline-block px-2 py-1 text-xs rounded ${statusLabels[status].color}`}>
+      {statusLabels[status].label}
+    </span>
+  )
+}
+
+function VerifyStatusBadge({ verifyStatus }: { verifyStatus?: number }) {
+  const verifyLabels: Record<number, { label: string; color: string; description: string }> = {
+    0: { label: 'Chưa xác minh', color: 'bg-gray-100 text-gray-600', description: 'Sản phẩm chưa được kiểm tra/xác minh' },
+    1: { label: 'Đã xác minh', color: 'bg-green-100 text-green-700', description: 'Sản phẩm đã được xác minh hợp lệ' },
+    2: { label: 'Bị từ chối', color: 'bg-red-100 text-red-700', description: 'Sản phẩm không đạt yêu cầu' },
+  }
+
+  if (verifyStatus === undefined || !verifyLabels[verifyStatus]) {
+    return <span className="text-gray-500">-</span>
+  }
+
+  return (
+    <span className={`inline-block px-2 py-1 text-xs rounded ${verifyLabels[verifyStatus].color}`}>
+      {verifyLabels[verifyStatus].label}
+    </span>
   )
 }
 

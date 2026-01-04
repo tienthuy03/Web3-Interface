@@ -14,6 +14,7 @@ import ProductList from './components/ProductList';
 import TransferProduct from './components/TransferProduct';
 import ScannedPage from './components/ScannedPage';
 import { getProductsFromChain } from './contracts/contractInteraction'
+import TransferDelivery from './components/TransferDelivery';
 
 type Product = {
   id: string
@@ -22,6 +23,9 @@ type Product = {
   description?: string
   image?: string
   owner?: string
+  category?: string
+  brand?: string
+  currency?: string
 }
 const sampleProducts: Product[] = [
   { id: 'p1', name: 'Áo thun', price: 150000, description: 'Áo thun cotton thoáng mát' },
@@ -82,7 +86,8 @@ function App() {
   const [funderLenght, setFunderLenght] = useState<number | null>(null);
   const [amoutFund, setAmoutFund] = useState<number | null>(null);
   const [loadingProducts, setLoadingProducts] = useState(false)
-
+  const [selectedProductDetail, setSelectedProductDetail] = useState<any | null>(null)
+  const [showDetail, setShowDetail] = useState(false)
   console.log(amoutFund)
 
   const fetchContractData = async () => {
@@ -148,12 +153,14 @@ function App() {
   const [products, setProducts] = useState<Product[]>([])
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
   const [editingProductId, setEditingProductId] = useState<string | null>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
   const [isAddingProduct, setIsAddingProduct] = useState(false)
   const selectedProduct = products.find(p => p.id === selectedProductId) ?? null
   const [transactions, setTransactions] = useState<Transaction[]>(sampleTransactions)
   const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null)
   const selectedTransaction = transactions.find(t => t.id === selectedTransactionId) ?? null
-  const [menu, setMenu] = useState<'products' | 'transactions' | 'analytics' | 'transfer'>('products')
+  const [menu, setMenu] = useState<'products' | 'transactions' | 'analytics' | 'transfer' | 'transferDelivery'>('products')
   const [scannedData, setScannedData] = useState<any | null>(null)
   // ===== Dashboard computed counts =====
   const totalProducts = products.length
@@ -164,22 +171,26 @@ function App() {
   const soldCount = products.filter(p => (p as any).status === 1).length
   // Product handlers
   const handleAddProduct = () => {
-    setIsAddingProduct(true)
+    setIsAddingProduct(false)
     setEditingProductId(null)
     setSelectedProductId(null)
+    setShowCreateModal(true)
   }
-  const handleSaveProduct = (data: { id?: string; name: string; price: number; description?: string; image?: string }) => {
+  const handleSaveProduct = (data: { id?: string; name: string; price: number; description?: string; image?: string; category?: string; brand?: string; currency?: string }) => {
     if (data.id) {
-      setProducts(prev => prev.map(p => (p.id === data.id ? { ...p, name: data.name, price: data.price, description: data.description, image: data.image } : p)))
+      setProducts(prev => prev.map(p => (p.id === data.id ? { ...p, name: data.name, price: data.price, description: data.description, image: data.image, ...(data.category ? { category: data.category } : {}), ...(data.brand ? { brand: data.brand } : {}), ...(data.currency ? { currency: data.currency } : {}) } : p)))
       setEditingProductId(null)
       setSelectedProductId(data.id)
     } else {
       const id = 'p' + Date.now()
-      const newP: Product = { id, name: data.name, price: data.price, description: data.description, image: data.image }
+      const newP: Product = { id, name: data.name, price: data.price, description: data.description, image: data.image, ...(data.category ? { category: data.category } : {}), ...(data.brand ? { brand: data.brand } : {}), ...(data.currency ? { currency: data.currency } : {}) }
       setProducts(prev => [newP, ...prev])
       setIsAddingProduct(false)
       setSelectedProductId(id)
     }
+    // close modals if open
+    setShowEditModal(false)
+    setShowCreateModal(false)
   }
   const handleDeleteProduct = (id: string) => {
     setProducts(prev => prev.filter(p => p.id !== id))
@@ -190,6 +201,7 @@ function App() {
     setEditingProductId(id)
     setIsAddingProduct(false)
     setSelectedProductId(null)
+    setShowEditModal(true)
   }
   const handleSelectTransaction = (id: string) => {
     setSelectedTransactionId(id)
@@ -228,6 +240,9 @@ function App() {
               </li>
               <li>
                 <button onClick={() => setMenu('transfer')} className={`w-full text-left px-3 py-2 rounded ${menu === 'transfer' ? 'bg-blue-50 text-blue-600 font-medium' : 'hover:bg-gray-100'}`}>Transfer Product</button>
+              </li>
+              <li>
+                <button onClick={() => setMenu('transferDelivery')} className={`w-full text-left px-3 py-2 rounded ${menu === 'transferDelivery' ? 'bg-blue-50 text-blue-600 font-medium' : 'hover:bg-gray-100'}`}>Transfer Delivery</button>
               </li>
               <li>
                 <button onClick={() => setMenu('analytics')} className={`w-full text-left px-3 py-2 rounded ${menu === 'analytics' ? 'bg-blue-50 text-blue-600 font-medium' : 'hover:bg-gray-100'}`}>Analytics</button>
@@ -299,7 +314,7 @@ function App() {
           </div>
           {/* Content area: render by menu selection */}
           {menu === 'products' && (
-            <div className="grid grid-cols-3 gap-6 h-[calc(100vh-260px)]">
+            <div className="grid grid-cols-1 gap-6 h-[calc(100vh-260px)]">
               <div className="col-span-2 bg-white rounded shadow overflow-auto">
                 <ProductList
                   products={products}
@@ -315,19 +330,7 @@ function App() {
                 />
 
               </div>
-              <div className="col-span-1 bg-white rounded shadow overflow-auto">
-                {isAddingProduct && (
-                  <div>
-                    <h3 className="px-4 pt-4 text-lg font-semibold">Thêm sản phẩm</h3>
-                    <ProductForm onSave={handleSaveProduct} onCancel={() => setIsAddingProduct(false)} />
-                  </div>
-                )}
-                {editingProductId && (
-                  <div>
-                    <h3 className="px-4 pt-4 text-lg font-semibold">Sửa sản phẩm</h3>
-                    <ProductForm initial={products.find(p => p.id === editingProductId) ?? {}} onSave={handleSaveProduct} onCancel={() => setEditingProductId(null)} />
-                  </div>
-                )}
+              {/* <div className="col-span-1 bg-white rounded shadow overflow-auto">
                 {!isAddingProduct && !editingProductId && (
                   <ProductDetail
                     product={selectedProduct}
@@ -356,7 +359,7 @@ function App() {
                     onDelete={id => handleDeleteProduct(id)}
                   />
                 )}
-              </div>
+              </div> */}
             </div>
           )}
 
@@ -382,7 +385,17 @@ function App() {
               }} onBack={() => setMenu('products')} />
             </div>
           )}
-
+          {menu === 'transferDelivery' && (
+            <div className="bg-white rounded shadow p-4 min-h-[calc(100vh-260px)]">
+              <TransferDelivery products={products.map(p => ({ id: p.id, name: p.name }))} onTransfer={(payload) => {
+                // update owner locally
+                setProducts(prev => prev.map(p => p.id === payload.productId ? { ...p, owner: payload.newOwner } : p))
+                alert('Đã chuyển sản phẩm thành công (local)')
+                setMenu('products')
+                setSelectedProductId(payload.productId)
+              }} onBack={() => setMenu('products')} />
+            </div>
+          )}
           {menu === 'analytics' && (
             <div className="bg-gray-50 min-h-[calc(100vh-260px)]">
               {scannedData ? <ScannedPage product={scannedData} /> : (
@@ -393,6 +406,63 @@ function App() {
               )}
             </div>
           )}
+
+          {/* Global edit modal */}
+          {showEditModal && editingProductId && (
+            <ProductForm
+              initial={products.find(p => p.id === editingProductId) ?? {}}
+              onSave={handleSaveProduct}
+              onCancel={() => { setShowEditModal(false); setEditingProductId(null) }}
+              asModal
+            />
+          )}
+
+          {/* Global create modal */}
+          {showCreateModal && (
+            <ProductForm
+              initial={{}}
+              onSave={handleSaveProduct}
+              onCancel={() => setShowCreateModal(false)}
+              asModal
+            />
+          )}
+          {showDetail && selectedProductDetail && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+              {/* overlay */}
+              <div
+                className="absolute inset-0 bg-black/40"
+                onClick={() => {
+                  setShowDetail(false)
+                  setSelectedProductDetail(null)
+                }}
+              />
+
+              {/* modal */}
+              <div className="relative w-full max-w-5xl max-h-[90vh] bg-white rounded-xl shadow-lg overflow-hidden">
+                <div className="h-full overflow-auto">
+                  <ProductDetail
+                    product={selectedProduct}
+                    role="owner"
+                    onBack={() => {
+                      setShowDetail(false)
+                      setSelectedProductDetail(null)
+                    }}
+                    onEdit={(id) => {
+                      setShowDetail(false)
+                      handleEditProduct(id)
+                    }}
+                    onDelete={(id) => {
+                      setShowDetail(false)
+                      handleDeleteProduct(id)
+                    }}
+                    onAction={() => { }}
+                    onScanClick={() => { }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
         </main>
       </div>
     </div>

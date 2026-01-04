@@ -90,7 +90,7 @@ function App() {
     // Extract product ID from URL (if any)
     const pathMatch = location.pathname.match(/\/(?:products?|product)\/(.+)$/)
     const productId = pathMatch ? pathMatch[1] : '1'
-    
+
     // Create a sample product for ScannedPage
     const sampleProduct = {
       id: parseInt(productId) || 1,
@@ -111,7 +111,7 @@ function App() {
       sku: '',
       batchNumber: '',
     }
-    
+
     return <ScannedPage product={sampleProduct} />
   }
 
@@ -122,48 +122,6 @@ function App() {
   const [selectedProductDetail, setSelectedProductDetail] = useState<any | null>(null)
   const [showDetail, setShowDetail] = useState(false)
 
-  // const fetchContractData = async () => {
-  //   console.log("════════ fetchContractData ════════");
-
-  //   if (!walletProvider) return;
-
-  //   try {
-  //     setLoadingProducts(true); // ✅ START LOADING
-
-  //     const ethersProvider = new BrowserProvider(walletProvider);
-  //     const contract = new Contract(CONTRACT_ADDRESS, ABI, ethersProvider);
-
-  //     // ===== PRODUCTS =====
-  //     console.log("⛓ Fetching products from chain...");
-  //     const chainProducts = await getProductsFromChain();
-
-  //     console.log("📦 chainProducts =", chainProducts);
-
-  //     if (Array.isArray(chainProducts)) {
-  //       const mapped = chainProducts.map((p: any) => ({
-  //         id: p.id?.toString() ?? "",
-  //         name: p.name ?? "",
-  //         price: Number(p.price ?? 0),
-  //         description: p.description ?? "",
-  //         ingredients: p.ingredients ?? "",
-  //         manufactureDate: p.manufactureDate ? Number(p.manufactureDate) : undefined,
-  //         expiryDate: p.expiryDate ? Number(p.expiryDate) : undefined,
-  //         createdAt: p.createdAt ? Number(p.createdAt) : undefined,
-  //         owner: p.owner ?? "",
-  //         status: p.status !== undefined ? Number(p.status) : undefined,
-  //         imageUrl: p.imageUrl ?? ""
-
-  //       }));
-
-  //       setProducts(mapped);
-  //     }
-
-  //   } catch (err) {
-  //     console.error("❌ fetchContractData error", err);
-  //   } finally {
-  //     setLoadingProducts(false); // ✅ END LOADING
-  //   }
-  // };
 
   const fetchContractData = async () => {
     console.log("════════ fetchContractData ════════");

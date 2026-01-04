@@ -11,6 +11,7 @@ import TransactionList from './components/TransactionList';
 import ProductDetail from './components/ProductDetail';
 import ProductForm from './components/ProductForm';
 import ProductList from './components/ProductList';
+import TransferProduct from './components/TransferProduct';
 import ScannedPage from './components/ScannedPage';
 import { getProductsFromChain } from './contracts/contractInteraction'
 
@@ -19,6 +20,8 @@ type Product = {
   name: string
   price: number
   description?: string
+  image?: string
+  owner?: string
 }
 const sampleProducts: Product[] = [
   { id: 'p1', name: 'Áo thun', price: 150000, description: 'Áo thun cotton thoáng mát' },
@@ -150,22 +153,29 @@ function App() {
   const [transactions, setTransactions] = useState<Transaction[]>(sampleTransactions)
   const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null)
   const selectedTransaction = transactions.find(t => t.id === selectedTransactionId) ?? null
-  const [menu, setMenu] = useState<'products' | 'transactions' | 'analytics'>('products')
+  const [menu, setMenu] = useState<'products' | 'transactions' | 'analytics' | 'transfer'>('products')
   const [scannedData, setScannedData] = useState<any | null>(null)
+  // ===== Dashboard computed counts =====
+  const totalProducts = products.length
+  const nowSec = Math.floor(Date.now() / 1000)
+  const expiredCount = products.filter(p => (p as any).expiryDate && (p as any).expiryDate > 0 && (p as any).expiryDate < nowSec).length
+  // status: 0 = Đang lưu hành, 1 = Đã bán (assumption), other = Ngừng bán
+  const inCirculationCount = products.filter(p => (p as any).status === 0).length
+  const soldCount = products.filter(p => (p as any).status === 1).length
   // Product handlers
   const handleAddProduct = () => {
     setIsAddingProduct(true)
     setEditingProductId(null)
     setSelectedProductId(null)
   }
-  const handleSaveProduct = (data: { id?: string; name: string; price: number; description?: string }) => {
+  const handleSaveProduct = (data: { id?: string; name: string; price: number; description?: string; image?: string }) => {
     if (data.id) {
-      setProducts(prev => prev.map(p => (p.id === data.id ? { ...p, name: data.name, price: data.price, description: data.description } : p)))
+      setProducts(prev => prev.map(p => (p.id === data.id ? { ...p, name: data.name, price: data.price, description: data.description, image: data.image } : p)))
       setEditingProductId(null)
       setSelectedProductId(data.id)
     } else {
       const id = 'p' + Date.now()
-      const newP: Product = { id, name: data.name, price: data.price, description: data.description }
+      const newP: Product = { id, name: data.name, price: data.price, description: data.description, image: data.image }
       setProducts(prev => [newP, ...prev])
       setIsAddingProduct(false)
       setSelectedProductId(id)
@@ -217,6 +227,9 @@ function App() {
                 <button onClick={() => setMenu('transactions')} className={`w-full text-left px-3 py-2 rounded ${menu === 'transactions' ? 'bg-blue-50 text-blue-600 font-medium' : 'hover:bg-gray-100'}`}>Transactions</button>
               </li>
               <li>
+                <button onClick={() => setMenu('transfer')} className={`w-full text-left px-3 py-2 rounded ${menu === 'transfer' ? 'bg-blue-50 text-blue-600 font-medium' : 'hover:bg-gray-100'}`}>Transfer Product</button>
+              </li>
+              <li>
                 <button onClick={() => setMenu('analytics')} className={`w-full text-left px-3 py-2 rounded ${menu === 'analytics' ? 'bg-blue-50 text-blue-600 font-medium' : 'hover:bg-gray-100'}`}>Analytics</button>
               </li>
               <li>
@@ -265,20 +278,23 @@ function App() {
           {/* Stats cards */}
           <div className="grid grid-cols-4 gap-4 mb-6">
             <div className="bg-white p-4 rounded shadow">
-              <div className="text-sm text-gray-500">Sản phẩm</div>
-              <div className="text-xl font-bold">{products.length}</div>
+              <div className="text-sm text-gray-500">Tổng sản phẩm</div>
+              <div className="text-xl font-bold">{totalProducts}</div>
             </div>
+
             <div className="bg-white p-4 rounded shadow">
-              <div className="text-sm text-gray-500">Doanh thu</div>
-              <div className="text-xl font-bold">{products.reduce((s, p) => s + p.price, 0).toLocaleString()} VND</div>
+              <div className="text-sm text-gray-500">Đang lưu thông</div>
+              <div className="text-xl font-bold">{inCirculationCount}</div>
             </div>
+
             <div className="bg-white p-4 rounded shadow">
-              <div className="text-sm text-gray-500">Đơn hàng</div>
-              <div className="text-xl font-bold">201</div>
+              <div className="text-sm text-gray-500">Đã bán</div>
+              <div className="text-xl font-bold">{soldCount}</div>
             </div>
+
             <div className="bg-white p-4 rounded shadow">
-              <div className="text-sm text-gray-500">Khách hàng</div>
-              <div className="text-xl font-bold">1,201</div>
+              <div className="text-sm text-gray-500">Hết hạn</div>
+              <div className="text-xl font-bold text-red-600">{expiredCount}</div>
             </div>
           </div>
           {/* Content area: render by menu selection */}
@@ -315,13 +331,29 @@ function App() {
                 {!isAddingProduct && !editingProductId && (
                   <ProductDetail
                     product={selectedProduct}
-                    onBack={() => setSelectedProductId(null)}
-                    onEdit={id => handleEditProduct(id)}
-                    onDelete={id => handleDeleteProduct(id)}
+                    role={((): 'manufacturer' | 'owner' | 'consumer' | 'viewer' => {
+                      if (!address) return 'viewer'
+                      if (selectedProduct && (selectedProduct as any).owner && address && address.toLowerCase() === (selectedProduct as any).owner.toLowerCase()) return 'owner'
+                      return 'consumer'
+                    })()}
+                    onAction={(a) => {
+                      console.log('Product action', a)
+                      if (a === 'verify') {
+                        setScannedData(selectedProduct)
+                        setMenu('analytics')
+                      }
+                      if (a === 'transfer') {
+                        // TODO: open transfer UI
+                        alert('Open transfer flow (TODO)')
+                      }
+                    }}
                     onScanClick={(p) => {
                       setScannedData(p)
                       setMenu('analytics')
                     }}
+                    onBack={() => setSelectedProductId(null)}
+                    onEdit={id => handleEditProduct(id)}
+                    onDelete={id => handleDeleteProduct(id)}
                   />
                 )}
               </div>
@@ -336,6 +368,18 @@ function App() {
               <div className="col-span-1 bg-white rounded shadow overflow-auto">
                 <TransactionDetail transaction={selectedTransaction} onBack={() => setSelectedTransactionId(null)} />
               </div>
+            </div>
+          )}
+
+          {menu === 'transfer' && (
+            <div className="bg-white rounded shadow p-4 min-h-[calc(100vh-260px)]">
+              <TransferProduct products={products.map(p => ({ id: p.id, name: p.name }))} onTransfer={(payload) => {
+                // update owner locally
+                setProducts(prev => prev.map(p => p.id === payload.productId ? { ...p, owner: payload.newOwner } : p))
+                alert('Đã chuyển sản phẩm thành công (local)')
+                setMenu('products')
+                setSelectedProductId(payload.productId)
+              }} onBack={() => setMenu('products')} />
             </div>
           )}
 
@@ -366,6 +410,6 @@ const product = {
   createdAt: 1767446796,
   owner: "0x03ea79Ea20e58e2dFDa89dCaabddB58898588FaC",
   status: 0,
-  imageUrl: "" // sau này gắn link ảnh
+  imageUrl: "" // sau này gắn
 }
 

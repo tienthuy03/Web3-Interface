@@ -103,7 +103,21 @@ type Props = {
   onDelete: (id: string) => void
 }
 
-export default function ProductDetail({ product, onBack, onEdit, onDelete }: Props) {
+type TimelineItem = { title: string; ts?: number; by?: string; note?: string }
+
+type Role = 'manufacturer' | 'owner' | 'consumer' | 'viewer'
+
+type PropsExtended = {
+  product?: Product | null
+  role?: Role
+  onAction?: (action: string) => void
+  onScanClick?: (p: any) => void
+  onBack: () => void
+  onEdit: (id: string) => void
+  onDelete: (id: string) => void
+}
+
+export default function ProductDetail({ product, role = 'viewer', onAction, onScanClick, onBack, onEdit, onDelete }: PropsExtended) {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
 
   if (!product) {
@@ -116,7 +130,7 @@ export default function ProductDetail({ product, onBack, onEdit, onDelete }: Pro
   }
 
   const formatDate = (ts?: number) =>
-    ts ? new Date(ts * 1000).toLocaleDateString('vi-VN') : '-'
+    ts ? new Date(ts > 1e12 ? ts : ts * 1000).toLocaleDateString('vi-VN') : '-'
 
   useEffect(() => {
     const payload = JSON.stringify({
@@ -170,7 +184,7 @@ export default function ProductDetail({ product, onBack, onEdit, onDelete }: Pro
         <div className="grid grid-cols-2 gap-4 text-sm">
           <Info label="Giá bán">
             <span className="font-semibold text-gray-800">
-              {product.price.toLocaleString()} VND
+              {formatPrice(product.price)} VND
             </span>
           </Info>
 
@@ -196,6 +210,38 @@ export default function ProductDetail({ product, onBack, onEdit, onDelete }: Pro
             {product.description}
           </InfoBlock>
         )}
+
+        {/* Timeline + Action area */}
+        <div className="mt-3 grid grid-cols-2 gap-4">
+          <div>
+            <div className="text-xs text-gray-500 mb-2">Timeline chuỗi cung ứng</div>
+            <div className="space-y-3">
+              {(() => {
+                const timeline = buildTimeline(product)
+                return timeline.map((item, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <div className="w-8 flex flex-col items-center">
+                      <div className="w-2 h-2 bg-blue-600 rounded-full mt-1" />
+                      {i < timeline.length - 1 && <div className="w-px bg-gray-200 flex-1 mt-1" />}
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium">{item.title}</div>
+                      {item.note && <div className="text-xs text-gray-500">{item.note}</div>}
+                      <div className="text-xs text-gray-400">{item.ts ? new Date(item.ts * 1000).toLocaleString('vi-VN') : ''} {item.by ? `• ${item.by}` : ''}</div>
+                    </div>
+                  </div>
+                ))
+              })()}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-xs text-gray-500 mb-2">Hành động</div>
+            <div className="bg-gray-50 rounded p-3">
+              {renderActions(role, product, onAction, onEdit, onDelete, onBack, onScanClick)}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* QR */}
@@ -217,6 +263,12 @@ export default function ProductDetail({ product, onBack, onEdit, onDelete }: Pro
   )
 }
 
+function formatPrice(v: any) {
+  const n = Number(v ?? 0)
+  if (Number.isNaN(n)) return '0'
+  try { return n.toLocaleString() } catch { return String(n) }
+}
+
 /* ===== Small UI helpers ===== */
 
 function Info({ label, children }: { label: string; children: React.ReactNode }) {
@@ -235,6 +287,92 @@ function InfoBlock({ label, children }: { label: string; children: React.ReactNo
       <div className="text-sm text-gray-700 bg-gray-50 rounded p-3">
         {children}
       </div>
+    </div>
+  )
+}
+
+/* ===== Helpers for timeline & actions ===== */
+
+function buildTimeline(product?: Product | null) {
+  if (!product) return []
+
+  // If product provides an events array, use it (flexible on-chain reconstruction)
+  const events = (product as any).events
+  if (Array.isArray(events) && events.length > 0) {
+    // Expect events: { type, ts, by, note, meta }
+    return events.map((e: any) => ({
+      title: typeof e.type === 'string' ? prettyEventTitle(e.type) : (e.title ?? 'Event'),
+      ts: e.ts ? Number(e.ts) : undefined,
+      by: e.by,
+      note: e.note ?? (e.meta ? JSON.stringify(e.meta) : undefined),
+    }))
+  }
+
+  const arr: TimelineItem[] = []
+  if ((product as any).createdAt) arr.push({ title: 'Product created', ts: (product as any).createdAt, by: (product as any).owner })
+  if (product.manufactureDate) arr.push({ title: 'Manufactured', ts: product.manufactureDate })
+  if ((product as any).qualityCheckedAt) arr.push({ title: 'Quality checked', ts: (product as any).qualityCheckedAt, by: (product as any).inspector, note: (product as any).qualityNote })
+  if ((product as any).packagedAt) arr.push({ title: 'Packaged', ts: (product as any).packagedAt })
+  if ((product as any).shippedAt) arr.push({ title: 'Shipped', ts: (product as any).shippedAt, note: (product as any).carrier })
+  if ((product as any).receivedAt) arr.push({ title: 'Received', ts: (product as any).receivedAt, by: (product as any).receiver })
+  if ((product as any).owner) arr.push({ title: 'Current owner', by: (product as any).owner })
+  if (product.expiryDate) arr.push({ title: 'Expiry', ts: product.expiryDate })
+  if ((product as any).soldAt) arr.push({ title: 'Sold', ts: (product as any).soldAt, by: (product as any).buyer })
+  if ((product as any).verifiedAt) arr.push({ title: 'Verified', ts: (product as any).verifiedAt, by: (product as any).verifier, note: (product as any).verificationNote })
+  if ((product as any).expiredAt) arr.push({ title: 'Disposed / Expired', ts: (product as any).expiredAt })
+  return arr
+}
+
+function prettyEventTitle(type: string) {
+  const map: Record<string, string> = {
+    ProductCreated: 'Product created',
+    Manufactured: 'Manufactured',
+    QualityChecked: 'Quality checked',
+    Packaged: 'Packaged',
+    Shipped: 'Shipped',
+    Received: 'Received',
+    OwnershipTransferred: 'Ownership transferred',
+    Sold: 'Sold',
+    Verified: 'Verified',
+    Expired: 'Expired',
+  }
+  return map[type] ?? type
+}
+
+function renderActions(role: Role, product: Product | null | undefined, onAction?: (a: string) => void, onEdit?: (id: string) => void, onDelete?: (id: string) => void, onBack?: () => void, onScanClick?: (p: any) => void) {
+  if (!product) return <div className="text-sm text-gray-500">Không có sản phẩm</div>
+
+  if (role === 'manufacturer') {
+    return (
+      <div className="space-y-2">
+        <button onClick={() => onAction?.('create')} className="w-full bg-blue-600 text-white py-2 rounded">Cập nhật sản phẩm</button>
+        <button onClick={() => onAction?.('transfer')} className="w-full bg-emerald-600 text-white py-2 rounded">Chuyển giao</button>
+      </div>
+    )
+  }
+
+  if (role === 'owner') {
+    return (
+      <div className="space-y-2">
+        <button onClick={() => onAction?.('transfer')} className="w-full bg-emerald-600 text-white py-2 rounded">Chuyển sở hữu</button>
+        <button onClick={() => onEdit?.(product.id)} className="w-full bg-yellow-50 text-yellow-700 py-2 rounded">Sửa thông tin</button>
+      </div>
+    )
+  }
+
+  if (role === 'consumer') {
+    return (
+      <div className="space-y-2">
+        <button onClick={() => onAction?.('verify')} className="w-full bg-indigo-600 text-white py-2 rounded">Xác thực</button>
+        <button onClick={() => onScanClick?.(product)} className="w-full bg-blue-600 text-white py-2 rounded">Mở QR</button>
+        <button onClick={() => onBack?.()} className="w-full bg-gray-100 py-2 rounded">Quay lại</button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      <button onClick={() => onAction?.('view')} className="w-full bg-gray-100 py-2 rounded">Xem</button>
     </div>
   )
 }

@@ -76,18 +76,6 @@ function App() {
   const { open } = useWeb3Modal();
   const { address, isConnected } = useWeb3ModalAccount();
   const { walletProvider } = useWeb3ModalProvider()
-
-  // // If on product page route, show ScannedPage directly (for QR code scanning)
-  // if (location.pathname.startsWith('/products/') || location.pathname.startsWith('/product/')) {
-  //   // Extract product ID from URL (if any)
-  //   const pathMatch = location.pathname.match(/\/(?:products?|product)\/(.+)$/)
-  //   const productId = pathMatch ? pathMatch[1] : '1'
-
-
-  //   return <ScannedPage />
-  // }
-  // Thêm state để lưu sản phẩm quét được từ URL
-  // --- STATE MỚI CHO SCANNER ---
   const [scannedProduct, setScannedProduct] = useState<any | null>(null);
   const [loadingScan, setLoadingScan] = useState(false);
 

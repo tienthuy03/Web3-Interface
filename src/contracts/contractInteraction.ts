@@ -113,6 +113,7 @@ export async function getProductFromChain(productId: number) {
     // id, sku, batchNumber, category, brand, originCountry, name, description, ingredients,
     // manufactureDate, expiryDate, price, currency, owner, scanCount, lastScannedAt,
     // imageURI, documentURI, status, createdAt
+    console.log('p====', p)
     const mapped = {
       id: Number(p[0]) || productId,
       sku: p[1] || '',
@@ -188,16 +189,16 @@ export async function getProductsFromChain(provider?: any): Promise<any[]> {
     try {
       console.log("🔄 Trying getAllProducts()...")
       const allProducts = await contract.getAllProducts()
-console.log(allProducts)
+
       if (Array.isArray(allProducts) && allProducts.length > 0) {
         const mapped = allProducts.map((p: any, index: number) => {
           // Map according to ABI: id, sku, batchCode, category, brand, origin, supplier, distributor, retailer, 
           // manufactureDate, expiryDate, price, currency, owner, status, qualityStatus, imageUrl, documentUrl, verifyStatus, createdAt
-          console.log('p =', p)
+
           return {
             id: Number(p.id ?? p[0] ?? index + 1),
-            sku: p.batchCode ?? p[2] ?? "",
-            batchNumber: p.sku ?? p[1] ?? "",
+            sku: p.sku ?? p[1] ?? "",
+            batchNumber: p.batchNumber ?? p[2] ?? "",
             category: p.category ?? p[3] ?? "",
             brand: p.brand ?? p[4] ?? "",
             originCountry: p.originCountry ?? p[5] ?? "",

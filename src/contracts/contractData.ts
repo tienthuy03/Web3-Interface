@@ -30,7 +30,6 @@ export const ABI = [
     "string currency," +
     "address owner," +
     "uint8 scanCount," +
-    "uint8 scanCount," +
     "string imageURI," +
     "string documentURI," +
     "uint8 status," +

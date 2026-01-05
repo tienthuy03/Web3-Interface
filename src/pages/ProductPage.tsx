@@ -90,10 +90,10 @@ export default function ProductPage() {
           // Additional fields for ScannedPage
           category: productData.category || '',
           brand: productData.brand || '',
-          origin: productData.origin || productData.originCountry || '',
+          originCountry: productData.originCountry || '',
           currency: productData.currency || 'VND',
           sku: productData.sku || '',
-          batchNumber: productData.batchNumber || productData.batchId || '',
+          batchNumber: productData.batchNumber || '',
         }
 
         console.log('✅ ProductPage: Mapped product:', mappedProduct)

@@ -12,11 +12,10 @@ type Product = {
   owner?: string
   status?: number
   imageUrl?: string
-  image?: string
   // Additional fields
   category?: string
   brand?: string
-  origin?: string
+  originCountry?: string
   currency?: string
   sku?: string
   batchNumber?: string
@@ -126,7 +125,7 @@ export default function ScannedPage({ product }: Props) {
             </Info>
 
             <Info label="Xuất xứ">
-              {product.origin || '-'}
+              {product.originCountry || '-'}
             </Info>
 
             <Info label="Danh mục">

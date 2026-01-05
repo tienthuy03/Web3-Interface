@@ -757,6 +757,7 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
       if (isEdit) {
         // Update existing product
         const productId = Number((initial as any).id)
+        console.log(productId,imageFilePath,documentFilePath)
         try {
           await updateProductOnChain(productId, {
             sku,
@@ -780,6 +781,7 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
           toast.dismiss(loadingToast)
           throw updateErr
         }
+        return;
       } else {
         // Create new product
         try {

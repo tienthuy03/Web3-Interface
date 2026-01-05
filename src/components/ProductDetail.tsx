@@ -4,30 +4,26 @@ import { toDataURL } from 'qrcode'
 
 type Product = {
   id: string
+  sku: string
   name: string
   price: number
   description?: string
   ingredients?: string
   manufactureDate?: number
   expiryDate?: number
-  image?: string
   imageUrl?: string
   // Additional fields from blockchain
   batchId?: string
   productCode?: string
   brand?: string
-  origin?: string
+  originCountry?: string
   category?: string
   currency?: string
   owner?: string
   status?: number
   verifyStatus?: number
   createdAt?: number
-  certHash?: string
-  txHash?: string
-  metadataHash?: string
   documentUrl?: string
-  deleted?: number
 }
 
 type Props = {
@@ -161,7 +157,7 @@ export default function ProductDetail({ product, role = 'viewer', onAction, onSc
           </Info>
 
           <Info label="Xuất xứ">
-            {product.origin || '-'}
+            {product.originCountry || '-'}
           </Info>
 
           <Info label="Danh mục">

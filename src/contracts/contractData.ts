@@ -6,6 +6,9 @@ export const ABI = [
     // CREATE
     "function createProduct(string,string,string,string,string,string,string,string,uint256,uint256,uint256,string,string,string) returns (uint256)",
 
+    // UPDATE
+    "function updateProduct(uint256,string,string,string,string,string,string,string,string,uint256,uint256,uint256,string,string,string)",
+
     // READ
     "function productCounter() view returns (uint256)",
     // Updated ABI to match actual contract schema: id, sku, batchNumber, category, brand, originCountry, name, description, ingredients, manufactureDate, expiryDate, price, currency, owner, scanCount, lastScannedAt, imageURI, documentURI, status, createdAt

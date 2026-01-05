@@ -112,11 +112,8 @@ function App() {
       batchNumber: '',
     }
 
-    return <ScannedPage product={sampleProduct} />
+    return <ScannedPage product={product} />
   }
-
-  const [crowdfundingBal, setCrowdfundingBal] = useState<string | null>(null);
-  const [funderLenght, setFunderLenght] = useState<number | null>(null);
   const [amoutFund, setAmoutFund] = useState<number | null>(null);
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [selectedProductDetail, setSelectedProductDetail] = useState<any | null>(null)
@@ -448,14 +445,36 @@ function App() {
           )}
 
           {/* Global edit modal */}
-          {showEditModal && editingProductId && (
-            <ProductForm
-              initial={products.find(p => p.id === editingProductId) ?? {}}
-              onSave={handleSaveProduct}
-              onCancel={() => { setShowEditModal(false); setEditingProductId(null) }}
-              asModal
-            />
-          )}
+          {showEditModal && editingProductId && (() => {
+            const product = products.find(p => p.id === editingProductId)
+            console.log("453 product: ", product);
+
+            if (!product) return null
+            return (
+              <ProductForm
+                initial={{
+                  id: product.id,
+                  sku: (product as any).productCode || (product as any).sku || '',
+                  batchNumber: (product as any).batchId || (product as any).batchNumber || '',
+                  category: product.category || '',
+                  brand: product.brand || '',
+                  originCountry: (product as any).origin || '',
+                  name: product.name || '',
+                  description: product.description || '',
+                  ingredients: product.ingredients || '',
+                  manufactureDate: product.manufactureDate ? (product.manufactureDate > 1e12 ? product.manufactureDate : product.manufactureDate * 1000) : undefined,
+                  expiryDate: product.expiryDate ? (product.expiryDate > 1e12 ? product.expiryDate : product.expiryDate * 1000) : undefined,
+                  price: product.price || 0,
+                  currency: product.currency || 'VND',
+                  imagePath: product.imageUrl || product.image || '',
+                  documentPath: (product as any).documentUrl || ''
+                }}
+                onSave={handleSaveProduct}
+                onCancel={() => { setShowEditModal(false); setEditingProductId(null) }}
+                asModal
+              />
+            )
+          })()}
 
           {/* Global create modal */}
           {showCreateModal && (

@@ -88,7 +88,7 @@ export default function ProductDetail({ product, role = 'viewer', onAction, onSc
 
     toDataURL(productUrl, { width: 180, margin: 2 })
       .then(setQrDataUrl)
-      .catch(() => setQrDataUrl(null))
+      .catch(() => setQrDataUrl(productUrl))
   }, [product])
 
   return (
@@ -133,12 +133,17 @@ export default function ProductDetail({ product, role = 'viewer', onAction, onSc
 
           {/* Product Name and Info */}
           <div className="flex-1">
-            <h2 className="text-xl font-semibold text-gray-800">{product.name}</h2>
-            <div className="text-sm text-gray-500 mt-1">
-              ID: <span className="font-mono">{product.id}</span>
-              {product.productCode && (
-                <> • Mã SP: <span className="font-mono">{product.productCode}</span></>
-              )}
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <h2 className="text-xl font-semibold text-gray-800">{product.name}</h2>
+                <div className="text-sm text-gray-500 mt-1">
+                  ID: <span className="font-mono">{product.id}</span>
+                  {product.productCode && (
+                    <> • Mã SP: <span className="font-mono">{product.productCode}</span></>
+                  )}
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -246,60 +251,93 @@ export default function ProductDetail({ product, role = 'viewer', onAction, onSc
           </InfoBlock>
         )}
 
-        {/* Timeline + Action area */}
-        <div className="mt-3 grid grid-cols-2 gap-4">
-          <div>
-            <div className="text-xs text-gray-500 mb-2">Timeline chuỗi cung ứng</div>
-            <div className="space-y-3">
+        {/* Timeline + QR Code */}
+        <div className="mt-3 grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Timeline */}
+          <div className="lg:col-span-2">
+            <div className="text-xs font-semibold text-gray-600 mb-3 flex items-center gap-1.5">
+              <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Timeline chuỗi cung ứng
+            </div>
+            <div className="relative">
               {(() => {
                 const timeline = buildTimeline(product)
-                return timeline.map((item, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <div className="w-8 flex flex-col items-center">
-                      <div className="w-2 h-2 bg-blue-600 rounded-full mt-1" />
-                      {i < timeline.length - 1 && <div className="w-px bg-gray-200 flex-1 mt-1" />}
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium">{item.title}</div>
-                      {item.note && <div className="text-xs text-gray-500">{item.note}</div>}
-                      <div className="text-xs text-gray-400">{item.ts ? new Date(item.ts * 1000).toLocaleString('vi-VN') : ''} {item.by ? `• ${item.by}` : ''}</div>
-                    </div>
+                if (timeline.length === 0) {
+                  return (
+                    <div className="text-xs text-gray-400 italic py-2">Chưa có thông tin timeline</div>
+                  )
+                }
+                return (
+                  <div className="space-y-0">
+                    {timeline.map((item, i) => (
+                      <div key={i} className="relative flex items-start gap-3 pb-4 last:pb-0 group">
+                        {/* Timeline dot */}
+                        <div className="flex flex-col items-center flex-shrink-0">
+                          <div className="relative z-10 w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md shadow-blue-500/20 ring-2 ring-white group-hover:scale-110 transition-transform duration-200">
+                            <div className="w-2 h-2 bg-white rounded-full" />
+                          </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 bg-gray-50 rounded-md border border-gray-200 p-3 hover:shadow-sm transition-shadow duration-200 group-hover:border-blue-200">
+                          <div className="text-sm font-medium text-gray-800 mb-1">{item.title}</div>
+                          {item.note && (
+                            <div className="text-xs text-gray-600 mb-1.5 leading-relaxed">{item.note}</div>
+                          )}
+                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                            {item.ts && (
+                              <span className="flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                {new Date(item.ts * 1000).toLocaleString('vi-VN')}
+                              </span>
+                            )}
+                            {item.by && (
+                              <span className="flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                                {item.by}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))
+                )
               })()}
             </div>
           </div>
 
-          <div>
-            <div className="text-xs text-gray-500 mb-2">Hành động</div>
-            <div className="bg-gray-50 rounded p-3">
-              {renderActions(role, product, onAction, onEdit, onDelete, onBack, onScanClick)}
+          {/* QR Code */}
+          <div className="lg:col-span-1">
+            <div className="bg-white p-4 text-center sticky top-4">
+              <div className="text-xs text-gray-500 mb-2">
+                Mã QR truy xuất nguồn gốc
+              </div>
+              {qrDataUrl ? (
+                <>
+                  <img
+                    src={qrDataUrl}
+                    alt={`QR ${product.id}`}
+                    className="mx-auto w-32 h-32"
+                  />
+                  {window.location.hostname === 'localhost' && (
+                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+                      ⚠️ Để quét trên điện thoại, truy cập app qua IP mạng (ví dụ: http://192.168.1.x:5173) thay vì localhost
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-xs text-gray-400">Đang tạo QR…</div>
+              )}
             </div>
           </div>
         </div>
-      </div>
-
-      {/* QR */}
-      <div className="bg-white rounded-xl border shadow-sm p-4 text-center">
-        <div className="text-sm text-gray-500 mb-2">
-          Mã QR truy xuất nguồn gốc
-        </div>
-        {qrDataUrl ? (
-          <>
-            <img
-              src={qrDataUrl}
-              alt={`QR ${product.id}`}
-              className="mx-auto w-44 h-44"
-            />
-            {window.location.hostname === 'localhost' && (
-              <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
-                ⚠️ Để quét trên điện thoại, truy cập app qua IP mạng (ví dụ: http://192.168.1.x:5173) thay vì localhost
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="text-sm text-gray-400">Đang tạo QR…</div>
-        )}
       </div>
     </div>
   )

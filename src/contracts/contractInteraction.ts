@@ -68,110 +68,6 @@ function getContract(providerOrSigner: any) {
   return new ethers.Contract(CONTRACT_ADDRESS, ABI, providerOrSigner)
 }
 
-/**
- * 🔹 Get SINGLE product by ID
- * uses: products(uint256)
- */
-// export async function getProductFromChain(productId: number) {
-//   try {
-//     console.log(`🔍 getProductFromChain: Starting for product ID: ${productId}`)
-
-//     const provider = await getProvider()
-//     if (!provider) {
-//       throw new Error('Không thể kết nối đến blockchain. Vui lòng kiểm tra RPC hoặc kết nối mạng.')
-//     }
-//     console.log('✅ getProductFromChain: Provider obtained:', provider)
-
-//     const contract = getContract(provider)
-//     console.log('✅ getProductFromChain: Contract instance created')
-
-//     // Check if product exists by checking productCounter
-//     try {
-//       const totalProducts = await contract.productCounter()
-//       const count = Number(totalProducts)
-//       console.log(`📊 getProductFromChain: Total products on chain: ${count}`)
-
-//       if (productId < 1 || productId > count) {
-//         throw new Error(`Sản phẩm ID ${productId} không tồn tại. Tổng số sản phẩm: ${count}`)
-//       }
-//     } catch (counterErr: any) {
-//       console.warn('⚠️ getProductFromChain: Could not check productCounter, continuing anyway:', counterErr)
-//       // Continue anyway, contract.products() will throw if product doesn't exist
-//     }
-
-//     console.log(`📡 getProductFromChain: Calling contract.products(${productId})`)
-//     const p: any = await contract.products(productId)
-//     console.log('📦 getProductFromChain: Raw product data received:', p)
-//     console.log('📦 getProductFromChain: Data type:', typeof p, 'Is array:', Array.isArray(p))
-
-//     // Check if product data is valid (not all zeros/empty)
-//     if (!p || (Array.isArray(p) && p.length === 0)) {
-//       throw new Error(`Sản phẩm ID ${productId} không có dữ liệu`)
-//     }
-
-//     // Map according to actual contract schema from the image:
-//     // id, sku, batchNumber, category, brand, originCountry, name, description, ingredients,
-//     // manufactureDate, expiryDate, price, currency, owner, scanCount, lastScannedAt,
-//     // imageURI, documentURI, status, createdAt
-//     console.log('p====', p)
-//     const mapped = {
-//       id: Number(p[0]) || productId,
-//       sku: p[1] ,
-//       batchId: p[2] || '',
-//       batchNumber: p[2] || '',
-//       category: p[3] || '',
-//       brand: p[4] || '',
-//       origin: p[5] || '',
-//       originCountry: p[5] || '',
-//       name: p[6] || p[3] || '', // Use category as fallback if name is empty/placeholder
-//       description: p[7] || '',
-//       ingredients: p[8] || '',
-//       manufactureDate: Number(p[9]) || 0,
-//       expiryDate: Number(p[10]) || 0,
-//       price: Number(p[11]) || 0,
-//       currency: p[12] || 'VND',
-//       owner: p[13] || '',
-//       scanCount: Number(p[14]) || 0,
-//       lastScannedAt: Number(p[15]) || 0,
-//       imageUrl: p[16] || '',
-//       imageURI: p[16] || '',
-//       documentUrl: p[17] || '',
-//       documentURI: p[17] || '',
-//       status: Number(p[18]) || 0,
-//       createdAt: Number(p[19]) || 0,
-//     }
-
-//     console.log('✅ getProductFromChain: Mapped product:', mapped)
-
-//     // Validate that we got at least some data
-//     if (mapped.id === undefined || mapped.id === null) {
-//       throw new Error(`Sản phẩm ID ${productId} trả về dữ liệu không hợp lệ: thiếu ID`)
-//     }
-
-//     // Check if product owner is zero address (product might not exist)
-//     if (mapped.owner === '0x0000000000000000000000000000000000000000' || !mapped.owner) {
-//       console.warn('⚠️ getProductFromChain: Product owner is zero address, product might not exist')
-//     }
-
-//     return mapped
-//   } catch (err: any) {
-//     console.error('❌ getProductFromChain: Error details:', err)
-//     console.error('❌ getProductFromChain: Error message:', err?.message)
-//     console.error('❌ getProductFromChain: Error code:', err?.code)
-//     console.error('❌ getProductFromChain: Error data:', err?.data)
-
-//     // Handle specific error cases
-//     if (err?.message?.includes('execution reverted') || err?.code === 'CALL_EXCEPTION') {
-//       throw new Error(`Sản phẩm ID ${productId} không tồn tại trên blockchain`)
-//     }
-
-//     if (err?.message?.includes('network') || err?.code === 'NETWORK_ERROR') {
-//       throw new Error('Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet hoặc RPC endpoint.')
-//     }
-
-//     throw new Error(`Không thể tải sản phẩm ${productId}: ${err?.message || 'Lỗi không xác định'}`)
-//   }
-// }
 export async function getProductFromChain(productId: number) {
   try {
     console.log(`🔍 getProductFromChain: Starting for product ID: ${productId}`)
@@ -183,13 +79,13 @@ export async function getProductFromChain(productId: number) {
     console.log('✅ getProductFromChain: Provider obtained:', provider)
 
     const contract = getContract(provider)
-    console.log('✅ getProductFromChain: Contract instance created')
+    // console.log('✅ getProductFromChain: Contract instance created')
 
     // Check if product exists
-    console.log(`📡 getProductFromChain: Calling contract.products(${productId})`)
+    // console.log(`📡 getProductFromChain: Calling contract.products(${productId})`)
     const p: any = await contract.products(productId)
     console.log('📦 getProductFromChain: Raw product data received:', p)
-    console.log('📦 getProductFromChain: Data length:', p?.length)
+    // console.log('📦 getProductFromChain: Data length:', p?.length)
 
     // Kiểm tra dữ liệu
     if (!p || (Array.isArray(p) && p.length < 20)) {

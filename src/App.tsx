@@ -258,23 +258,9 @@ function App() {
 
       try {
         const productData = await getProductFromChain(productIdNum);
-        console.log("✅ Contract call successful!");
-        console.log("256 📦 Product data:", productData);
-        console.log("📊 Product data type:", typeof productData);
-        console.log("📊 Is productData truthy?", !!productData);
 
         if (productData) {
           console.log("✅ Product data exists, mapping...");
-
-          // Debug thêm chi tiết
-          console.log("=== DEBUG PRODUCT FIELDS ===");
-          console.log("originCountry:", productData.originCountry);
-          console.log("createdAt:", productData.createdAt);
-          console.log("manufactureDate:", productData.manufactureDate);
-          console.log("expiryDate:", productData.expiryDate);
-          console.log("owner:", productData.owner);
-          console.log("=== END DEBUG ===");
-
           // Tạo object đầy đủ cho UI
           const mappedProduct = {
             // Dữ liệu gốc từ contract
@@ -282,9 +268,7 @@ function App() {
 
             // Đảm bảo các field UI cần
             id: productData.id?.toString() || productId,
-            image: productData.imageURI || "",
             imageUrl: productData.imageURI || "",
-            imageURI: productData.imageURI || "",
             category: productData.category || "",
             brand: productData.brand || "",
             currency: productData.currency || "VND",
@@ -305,9 +289,7 @@ function App() {
           };
 
           console.log("✅ Mapped product for UI:", mappedProduct);
-          console.log("🔄 Setting selectedProductDetail...");
           setSelectedProductDetail(mappedProduct);
-          console.log("🔄 Setting showDetail to true...");
           setShowDetail(true);
         } else {
           console.warn("⚠️ productData is null or undefined");
@@ -320,16 +302,12 @@ function App() {
 
     } catch (err) {
       console.error("❌ fetchProductDetail ERROR:", err);
-      console.error("Error stack:", err.stack);
-      console.error("Error name:", err.name);
-      console.error("Error code:", err.code);
 
       // Fallback
       console.log("🔄 Trying fallback to local products...");
       const localProduct = products.find(p => p.id === productId);
       if (localProduct) {
         console.log("✅ Found local product:", localProduct);
-        console.log("🔄 Setting selectedProductDetail from local...");
         setSelectedProductDetail(localProduct);
         console.log("🔄 Setting showDetail to true...");
         setShowDetail(true);

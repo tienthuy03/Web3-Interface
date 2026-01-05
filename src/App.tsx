@@ -5,7 +5,7 @@ import { createWeb3Modal, defaultConfig, useWeb3Modal, useWeb3ModalAccount, useW
 import { shortenAddr } from './lib/utils';
 import { ABI, CONTRACT_ADDRESS } from './contracts/contractData';
 import { ExternalLink } from 'lucide-react';
-import { BrowserProvider, Contract, formatEther, formatUnits, parseEther } from 'ethers';
+import { BrowserProvider, Contract } from 'ethers';
 import { useEffect, useState } from 'react';
 import TransactionDetail from './components/TransactionDetail';
 import TransactionList from './components/TransactionList';
@@ -60,14 +60,9 @@ const metadata = {
 }
 // 4. Create Ethers config
 const ethersConfig = defaultConfig({
-  /*Required*/
   metadata,
-  // /+Optional</
   enableEIP6963: true, // true by default
   enableInjected: true, // true by default
-  // enableCoinbase: true, // true by default
-  // rpcUrl: '', // used for the Coinbase SDK
-  // defaultChainId: 1 // used for the Coinbase SDK
 })
 // 5. Create a AppKit instance
 createWeb3Modal({
@@ -82,14 +77,89 @@ function App() {
   const { address, isConnected } = useWeb3ModalAccount();
   const { walletProvider } = useWeb3ModalProvider()
 
-  // If on product page route, show ScannedPage directly (for QR code scanning)
+  // // If on product page route, show ScannedPage directly (for QR code scanning)
+  // if (location.pathname.startsWith('/products/') || location.pathname.startsWith('/product/')) {
+  //   // Extract product ID from URL (if any)
+  //   const pathMatch = location.pathname.match(/\/(?:products?|product)\/(.+)$/)
+  //   const productId = pathMatch ? pathMatch[1] : '1'
+
+
+  //   return <ScannedPage />
+  // }
+  // Thêm state để lưu sản phẩm quét được từ URL
+  // --- STATE MỚI CHO SCANNER ---
+  const [scannedProduct, setScannedProduct] = useState<any | null>(null);
+  const [loadingScan, setLoadingScan] = useState(false);
+
+  // useEffect lắng nghe thay đổi URL để fetch dữ liệu từ Blockchain
+  useEffect(() => {
+    const pathMatch = location.pathname.match(/\/(?:products?|product)\/(.+)$/);
+    if (pathMatch) {
+      const pIdStr = pathMatch[1];
+      const pIdNum = Number(pIdStr);
+
+      if (!isNaN(pIdNum)) {
+        const loadFromChain = async () => {
+          setLoadingScan(true);
+          try {
+            // Gọi hàm interaction đã fix ở các bước trước
+            const data = await getProductFromChain(pIdNum);
+            if (data) {
+              setScannedProduct(data);
+            } else {
+              console.error("Sản phẩm không tồn tại trên Chain");
+            }
+          } catch (err) {
+            console.error("Lỗi khi fetch sản phẩm quét:", err);
+          } finally {
+            setLoadingScan(false);
+          }
+        };
+        loadFromChain();
+      }
+    }
+  }, [location.pathname]);
+
+  // Nếu là route quét, render ScannedPage với trạng thái loading
   if (location.pathname.startsWith('/products/') || location.pathname.startsWith('/product/')) {
-    // Extract product ID from URL (if any)
-    const pathMatch = location.pathname.match(/\/(?:products?|product)\/(.+)$/)
-    const productId = pathMatch ? pathMatch[1] : '1'
+    if (loadingScan) {
+      return (
+        <div className="h-screen w-full flex flex-col items-center justify-center bg-gray-50">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+          <p className="text-gray-600 font-medium">Đang truy xuất nguồn gốc từ Blockchain...</p>
+        </div>
+      );
+    }
 
+    // Nếu không tìm thấy sp trên chain, có thể hiện thông báo lỗi hoặc dùng local demo
+    if (!scannedProduct && !loadingScan) {
+      return (
+        <div className="h-screen flex items-center justify-center">
+          <div className="text-center p-6 bg-white rounded-lg shadow">
+            <h2 className="text-red-500 font-bold text-xl">Lỗi truy xuất</h2>
+            <p className="text-gray-600">Sản phẩm này không tồn tại trên hệ thống Blockchain.</p>
+            <button onClick={() => window.location.href = '/'} className="mt-4 text-blue-600">Về trang chủ</button>
+          </div>
+        </div>
+      )
+    }
 
-    return <ScannedPage product={product} />
+    return <ScannedPage product={scannedProduct} />;
+  }
+  // Nếu đang ở trang quét, hiển thị ScannedPage với dữ liệu thật
+  if (location.pathname.startsWith('/products/') || location.pathname.startsWith('/product/')) {
+    if (loadingScan) {
+      return (
+        <div className="h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Đang tải dữ liệu sản phẩm từ Blockchain...</p>
+          </div>
+        </div>
+      );
+    }
+
+    return <ScannedPage product={scannedProduct} />;
   }
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [selectedProductDetail, setSelectedProductDetail] = useState<any | null>(null)
@@ -239,34 +309,20 @@ function App() {
   const [loadingDetail, setLoadingDetail] = useState(false)
 
   const fetchProductDetail = async (productId: string) => {
-    console.log("═════════ [START] fetchProductDetail ═════════");
-    console.log("📋 Input productId:", productId);
-
     try {
-      console.log("🔄 Setting loading to true...");
       setLoadingDetail(true);
-
       const productIdNum = Number(productId);
-      console.log("🔢 Converted productId to number:", productIdNum);
-
       if (isNaN(productIdNum)) {
-        console.error("❌ Invalid product ID - not a number");
         throw new Error("ID sản phẩm không hợp lệ");
       }
-
-      console.log(`📡 Calling getProductFromChain(${productIdNum})...`);
-
       try {
         const productData = await getProductFromChain(productIdNum);
 
         if (productData) {
           console.log("✅ Product data exists, mapping...");
-          // Tạo object đầy đủ cho UI
-          const mappedProduct = {
-            // Dữ liệu gốc từ contract
-            ...productData,
 
-            // Đảm bảo các field UI cần
+          const mappedProduct = {
+            ...productData,
             id: productData.id?.toString() || productId,
             imageUrl: productData.imageURI || "",
             category: productData.category || "",
@@ -275,6 +331,7 @@ function App() {
             batchNumber: productData.batchNumber || "",
             sku: productData.sku || "",
             originCountry: productData.originCountry || "",
+            origin: productData.originCountry || "", // Thêm alias
             createdAt: productData.createdAt || 0,
             manufactureDate: productData.manufactureDate || 0,
             expiryDate: productData.expiryDate || 0,
@@ -285,38 +342,30 @@ function App() {
             price: productData.price || 0,
             status: productData.status || 0,
             documentUrl: productData.documentURI || "",
-            name: productData.name,
+            name: productData.name || productData.category || "Sản phẩm không tên",
           };
-
-          console.log("✅ Mapped product for UI:", mappedProduct);
           setSelectedProductDetail(mappedProduct);
           setShowDetail(true);
         } else {
-          console.warn("⚠️ productData is null or undefined");
+          throw new Error("Không nhận được dữ liệu từ contract");
         }
       } catch (contractError) {
         console.error("❌ Error in getProductFromChain:", contractError);
-        console.error("Contract error message:", contractError.message);
         throw contractError;
       }
 
     } catch (err) {
       console.error("❌ fetchProductDetail ERROR:", err);
-
-      // Fallback
-      console.log("🔄 Trying fallback to local products...");
       const localProduct = products.find(p => p.id === productId);
       if (localProduct) {
         console.log("✅ Found local product:", localProduct);
         setSelectedProductDetail(localProduct);
-        console.log("🔄 Setting showDetail to true...");
         setShowDetail(true);
       } else {
-        console.error("❌ No local product found for ID:", productId);
-        alert("Lỗi: " + (err.message || "Không thể tải sản phẩm"));
+        console.error("❌ No local product found");
+        alert("Lỗi: " + err.message);
       }
     } finally {
-      console.log("🔄 Setting loading to false...");
       setLoadingDetail(false);
       console.log("═════════ [END] fetchProductDetail ═════════\n");
     }
@@ -435,21 +484,6 @@ function App() {
           {menu === 'products' && (
             <div className="h-[calc(100vh-260px)]">
               <div className="bg-white rounded shadow overflow-auto h-full">
-                {/* <ProductList
-                  products={products}
-                  loading={loadingProducts}
-                  onSelect={id => {
-                    const product = products.find(p => p.id === id);
-                    setSelectedProductId(id);
-                    setSelectedProductDetail(product || null);
-                    setShowDetail(true);
-                    setEditingProductId(null);
-                    setIsAddingProduct(false);
-                  }}
-                  onEdit={handleEditProduct}
-                  onDelete={handleDeleteProduct}
-                  onAdd={handleAddProduct}
-                /> */}
                 <ProductList
                   products={products}
                   loading={loadingProducts}
@@ -611,17 +645,4 @@ function App() {
   );
 }
 export default App;
-const product = {
-  id: 1,
-  name: "test",
-  price: 11222,
-  description: "1",
-  ingredients: "test",
-  manufactureDate: 1767225600,
-  expiryDate: 1768262400,
-  createdAt: 1767446796,
-  owner: "0x03ea79Ea20e58e2dFDa89dCaabddB58898588FaC",
-  status: 0,
-  imageUrl: "" // sau này gắn
-}
 

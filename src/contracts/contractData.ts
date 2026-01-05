@@ -12,8 +12,8 @@ export const ABI = [
     // READ
     "function productCounter() view returns (uint256)",
     // Updated ABI to match actual contract schema: id, sku, batchNumber, category, brand, originCountry, name, description, ingredients, manufactureDate, expiryDate, price, currency, owner, scanCount, lastScannedAt, imageURI, documentURI, status, createdAt
-    "function products(uint256) view returns (tuple(uint256,string,string,string,string,string,string,string,string,uint256,uint256,uint256,string,address,uint256,uint256,string,string,uint8,uint256))",
-
+    // "function products(uint256) view returns (tuple(uint256,string,string,string,string,string,string,string,string,uint256,uint256,uint256,string,address,uint256,uint256,string,string,uint8,uint256))",
+    "function products(uint256) view returns (uint256 id, string sku, string batchNumber, string category, string brand, string originCountry, string name, string description, string ingredients, uint256 manufactureDate, uint256 expiryDate, uint256 price, string currency, address owner, uint256 scanCount, uint256 lastScannedAt, string imageURI, string documentURI, uint8 status, uint256 createdAt)",
     "function getAllProducts() view returns (tuple(" +
     "uint256 id," +
     "string sku," +

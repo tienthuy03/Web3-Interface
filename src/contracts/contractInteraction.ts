@@ -70,70 +70,50 @@ function getContract(providerOrSigner: any) {
 
 export async function getProductFromChain(productId: number) {
   try {
-    console.log(`🔍 getProductFromChain: Starting for product ID: ${productId}`)
+    const provider = await getProvider();
+    const contract = getContract(provider);
 
-    const provider = await getProvider()
-    if (!provider) {
-      throw new Error('Không thể kết nối đến blockchain. Vui lòng kiểm tra RPC hoặc kết nối mạng.')
-    }
-    console.log('✅ getProductFromChain: Provider obtained:', provider)
+    console.log(`📡 [STEP 4] Đang gọi contract.products(${productId})...`);
 
-    const contract = getContract(provider)
-    // console.log('✅ getProductFromChain: Contract instance created')
+    // Gọi hàm products
+    const p = await contract.products(productId);
+    console.log('📦 [STEP 5] Dữ liệu nhận được:', p);
 
-    // Check if product exists
-    // console.log(`📡 getProductFromChain: Calling contract.products(${productId})`)
-    const p: any = await contract.products(productId)
-    console.log('📦 getProductFromChain: Raw product data received:', p)
-    // console.log('📦 getProductFromChain: Data length:', p?.length)
-
-    // Kiểm tra dữ liệu
-    if (!p || (Array.isArray(p) && p.length < 20)) {
-      throw new Error(`Sản phẩm ID ${productId} không có dữ liệu đầy đủ`)
+    // Kiểm tra tồn tại qua owner (dựa trên ảnh Etherscan của bạn)
+    if (!p.owner || p.owner === '0x0000000000000000000000000000000000000000') {
+      return null;
     }
 
-    // Map theo đúng response từ contract (20 fields)
+    // Map dữ liệu (Ethers v6 sẽ tự gán tên field nếu ABI có định nghĩa tên)
     const mapped = {
-      // Field chính từ contract
-      id: Number(p[0]) || productId,
-      sku: p[1],
-      batchNumber: p[2],
-      category: p[3],
-      brand: p[4],
-      originCountry: p[5],
-      name: p[6],
-      description: p[7],
-      ingredients: p[8],
-      manufactureDate: Number(p[9]) || 0,
-      expiryDate: Number(p[10]) || 0,
-      price: Number(p[11]) || 0,
-      currency: p[12] || 'VND',
-      owner: p[13],
-      scanCount: Number(p[14]) || 0,
-      lastScannedAt: Number(p[15]) || 0,
-      imageURI: p[16],
-      documentURI: p[17],
-      status: Number(p[18]) || 0,
-      createdAt: Number(p[19]) || 0,
+      id: p.id?.toString() || productId.toString(),
+      sku: p.sku || '',
+      batchNumber: p.batchNumber || '', // Ảnh Etherscan ghi rõ là batchNumber
+      category: p.category || '',
+      brand: p.brand || '',
+      originCountry: p.originCountry || '',
+      name: p.name || '',
+      description: p.description || '',
+      ingredients: p.ingredients || '',
+      manufactureDate: Number(p.manufactureDate || 0),
+      expiryDate: Number(p.expiryDate || 0),
+      price: Number(p.price || 0),
+      currency: p.currency || 'VND',
+      owner: p.owner,
+      scanCount: Number(p.scanCount || 0),
+      lastScannedAt: Number(p.lastScannedAt || 0),
+      imageURI: p.imageURI || '',
+      documentURI: p.documentURI || '',
+      status: Number(p.status || 0),
+      createdAt: Number(p.createdAt || 0),
+    };
 
-    }
+    console.log('✅ [SUCCESS] Đã Map dữ liệu thành công:', mapped);
+    return mapped;
 
-    console.log('✅ getProductFromChain: Mapped product:', mapped)
-
-    // Validate
-    if (mapped.owner === '0x0000000000000000000000000000000000000000' || !mapped.owner) {
-      console.warn('⚠️ getProductFromChain: Product owner is zero address')
-    }
-
-    return mapped
   } catch (err: any) {
-    console.error('❌ getProductFromChain: Error:', err)
-
-    if (err?.message?.includes('execution reverted') || err?.code === 'CALL_EXCEPTION') {
-      throw new Error(`Sản phẩm ID ${productId} không tồn tại trên blockchain`)
-    }
-
-    throw new Error(`Không thể tải sản phẩm ${productId}: ${err?.message || 'Lỗi không xác định'}`)
+    console.error('❌ [FATAL ERROR]:', err.message);
+    throw err;
   }
 }
 /**

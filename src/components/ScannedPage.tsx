@@ -1,31 +1,26 @@
 import React from "react"
 
 type Product = {
-  id: number | string
-  name: string
-  price: number
-  description?: string
-  ingredients?: string
-  manufactureDate?: number
-  expiryDate?: number
-  createdAt?: number
-  owner?: string
-  status?: number
-  imageUrl?: string
-  // Additional fields
-  category?: string
-  brand?: string
-  originCountry?: string
-  currency?: string
-  sku?: string
-  batchNumber?: string
-  batchId?: string
-  productCode?: string
-  verifyStatus?: number
-  certHash?: string
-  txHash?: string
-  metadataHash?: string
-  documentUrl?: string
+  id: string;
+  sku: string;
+  batchNumber: string;
+  category: string;
+  brand: string;
+  originCountry: string;
+  name: string;
+  description: string;
+  ingredients: string;
+  manufactureDate: number;
+  expiryDate: number;
+  price: number;
+  currency: string;
+  owner: string;
+  scanCount: number;
+  lastScannedAt: number;
+  imageURI: string;
+  documentURI: string;
+  status: number;
+  createdAt: string;
 }
 
 type Props = {
@@ -70,10 +65,10 @@ export default function ScannedPage({ product }: Props) {
           <div className="flex items-start gap-4">
             {/* Small Product Image */}
             <div className="flex-shrink-0">
-              {(product?.image || product?.imageUrl) ? (
+              {(product?.imageURI) ? (
                 <img
-                  src={product?.image || product?.imageUrl}
-                  alt={product?.name ?? ""}
+                  src={product?.imageURI}
+                  alt={product?.name}
                   className="w-20 h-20 rounded-lg object-cover border shadow-sm"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement
@@ -105,8 +100,8 @@ export default function ScannedPage({ product }: Props) {
               <h2 className="text-xl font-semibold text-gray-800">{product.name}</h2>
               <div className="text-sm text-gray-500 mt-1">
                 ID: <span className="font-mono">{product.id}</span>
-                {product.productCode && (
-                  <> • Mã SP: <span className="font-mono">{product.productCode}</span></>
+                {product?.sku && (
+                  <> • Mã SP: <span className="font-mono">{product.sku}</span></>
                 )}
               </div>
             </div>
@@ -143,29 +138,25 @@ export default function ScannedPage({ product }: Props) {
             </Info>
 
             <Info label="Ngày tạo">
-              {formatDate(product.createdAt)}
+              {formatDate(product?.createdAt)}
             </Info>
 
             <Info label="Trạng thái">
               <StatusBadge status={product.status} />
             </Info>
-
-            <Info label="Trạng thái xác minh">
-              <VerifyStatusBadge verifyStatus={product.verifyStatus} />
-            </Info>
           </div>
 
           {/* Product Codes */}
-          {(product.batchId || product.productCode) && (
+          {(product.batchNumber || product.sku) && (
             <div className="grid grid-cols-2 gap-4 text-sm">
-              {product.batchId && (
+              {product.batchNumber && (
                 <Info label="Mã lô">
-                  <span className="font-mono text-xs">{product.batchId}</span>
+                  <span className="font-mono text-xs">{product.batchNumber}</span>
                 </Info>
               )}
-              {product.productCode && (
+              {product.sku && (
                 <Info label="Mã sản phẩm">
-                  <span className="font-mono text-xs">{product.productCode}</span>
+                  <span className="font-mono text-xs">{product.sku}</span>
                 </Info>
               )}
             </div>
@@ -178,24 +169,9 @@ export default function ScannedPage({ product }: Props) {
               <Info label="Chủ sở hữu">
                 <span className="font-mono text-xs break-all">{product.owner || '-'}</span>
               </Info>
-              {product.txHash && (
-                <Info label="Transaction Hash">
-                  <span className="font-mono text-xs break-all">{product.txHash}</span>
-                </Info>
-              )}
-              {product.certHash && (
-                <Info label="Certificate Hash">
-                  <span className="font-mono text-xs break-all">{product.certHash}</span>
-                </Info>
-              )}
-              {product.metadataHash && (
-                <Info label="Metadata Hash">
-                  <span className="font-mono text-xs break-all">{product.metadataHash}</span>
-                </Info>
-              )}
-              {product.documentUrl && (
+              {product.documentURI && (
                 <Info label="Tài liệu">
-                  <a href={product.documentUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs">
+                  <a href={product.documentURI} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs">
                     Xem tài liệu
                   </a>
                 </Info>

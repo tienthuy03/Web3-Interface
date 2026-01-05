@@ -28,10 +28,7 @@ type Product = {
   brand?: string
   currency?: string
 }
-const sampleProducts: Product[] = [
-  { id: 'p1', name: 'Áo thun', price: 150000, description: 'Áo thun cotton thoáng mát' },
-  { id: 'p2', name: 'Quần jeans', price: 350000, description: 'Quần jeans xanh' },
-]
+
 type Transaction = {
   id: string
   title: string
@@ -91,34 +88,14 @@ function App() {
     const pathMatch = location.pathname.match(/\/(?:products?|product)\/(.+)$/)
     const productId = pathMatch ? pathMatch[1] : '1'
 
-    // Create a sample product for ScannedPage
-    const sampleProduct = {
-      id: parseInt(productId) || 1,
-      name: 'Sản phẩm mẫu',
-      price: 100000,
-      description: 'Thông tin sản phẩm từ QR code',
-      ingredients: '',
-      manufactureDate: Math.floor(Date.now() / 1000) - 86400 * 30, // 30 days ago
-      expiryDate: Math.floor(Date.now() / 1000) + 86400 * 365, // 1 year from now
-      createdAt: Math.floor(Date.now() / 1000) - 86400 * 30,
-      owner: '0x0000000000000000000000000000000000000000',
-      status: 0,
-      imageUrl: '',
-      category: 'Sản phẩm',
-      brand: '',
-      origin: '',
-      currency: 'VND',
-      sku: '',
-      batchNumber: '',
-    }
 
     return <ScannedPage product={product} />
   }
-  const [amoutFund, setAmoutFund] = useState<number | null>(null);
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [selectedProductDetail, setSelectedProductDetail] = useState<any | null>(null)
   const [showDetail, setShowDetail] = useState(false)
 
+  console.log("98 selectedProductDetail: ", selectedProductDetail);
 
   const fetchContractData = async () => {
     console.log("════════ fetchContractData ════════");
@@ -194,23 +171,6 @@ function App() {
     }
   };
 
-  const handleFundToCrowdfunding = async () => {
-    if (amoutFund === null || amoutFund <= 0) {
-      alert("Amount Funding Invalid");
-    }
-    if (walletProvider) {
-      const ethersProvider = new BrowserProvider(walletProvider);
-      const singer = await ethersProvider.getSigner();
-      const contract = new Contract(CONTRACT_ADDRESS, ABI, singer);
-      const tx = contract.fund({ value: parseEther(String(amoutFund)) });
-      console.log("tx: ", tx);
-
-    }
-
-  }
-  const onInputAmoutChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setAmoutFund(Number(e.target.value))
-  }
   useEffect(() => {
     fetchContractData();
   }, [walletProvider])
@@ -276,7 +236,123 @@ function App() {
     if (selectedTransactionId === id) setSelectedTransactionId(null)
   }
 
+  const [loadingDetail, setLoadingDetail] = useState(false)
 
+  const fetchProductDetail = async (productId: string) => {
+    console.log("═════════ [START] fetchProductDetail ═════════");
+    console.log("📋 Input productId:", productId);
+
+    try {
+      console.log("🔄 Setting loading to true...");
+      setLoadingDetail(true);
+
+      const productIdNum = Number(productId);
+      console.log("🔢 Converted productId to number:", productIdNum);
+
+      if (isNaN(productIdNum)) {
+        console.error("❌ Invalid product ID - not a number");
+        throw new Error("ID sản phẩm không hợp lệ");
+      }
+
+      console.log(`📡 Calling getProductFromChain(${productIdNum})...`);
+
+      try {
+        const productData = await getProductFromChain(productIdNum);
+        console.log("✅ Contract call successful!");
+        console.log("256 📦 Product data:", productData);
+        console.log("📊 Product data type:", typeof productData);
+        console.log("📊 Is productData truthy?", !!productData);
+
+        if (productData) {
+          console.log("✅ Product data exists, mapping...");
+
+          // Debug thêm chi tiết
+          console.log("=== DEBUG PRODUCT FIELDS ===");
+          console.log("originCountry:", productData.originCountry);
+          console.log("createdAt:", productData.createdAt);
+          console.log("manufactureDate:", productData.manufactureDate);
+          console.log("expiryDate:", productData.expiryDate);
+          console.log("owner:", productData.owner);
+          console.log("=== END DEBUG ===");
+
+          // Tạo object đầy đủ cho UI
+          const mappedProduct = {
+            // Dữ liệu gốc từ contract
+            ...productData,
+
+            // Đảm bảo các field UI cần
+            id: productData.id?.toString() || productId,
+            image: productData.imageURI || "",
+            imageUrl: productData.imageURI || "",
+            imageURI: productData.imageURI || "",
+            category: productData.category || "",
+            brand: productData.brand || "",
+            currency: productData.currency || "VND",
+            batchNumber: productData.batchNumber || "",
+            sku: productData.sku || "",
+            originCountry: productData.originCountry || "",
+            createdAt: productData.createdAt || 0,
+            manufactureDate: productData.manufactureDate || 0,
+            expiryDate: productData.expiryDate || 0,
+            owner: productData.owner || "",
+            // Thêm các field mặc định
+            description: productData.description || "",
+            ingredients: productData.ingredients || "",
+            price: productData.price || 0,
+            status: productData.status || 0,
+            documentUrl: productData.documentURI || "",
+            name: productData.name,
+          };
+
+          console.log("✅ Mapped product for UI:", mappedProduct);
+          console.log("🔄 Setting selectedProductDetail...");
+          setSelectedProductDetail(mappedProduct);
+          console.log("🔄 Setting showDetail to true...");
+          setShowDetail(true);
+        } else {
+          console.warn("⚠️ productData is null or undefined");
+        }
+      } catch (contractError) {
+        console.error("❌ Error in getProductFromChain:", contractError);
+        console.error("Contract error message:", contractError.message);
+        throw contractError;
+      }
+
+    } catch (err) {
+      console.error("❌ fetchProductDetail ERROR:", err);
+      console.error("Error stack:", err.stack);
+      console.error("Error name:", err.name);
+      console.error("Error code:", err.code);
+
+      // Fallback
+      console.log("🔄 Trying fallback to local products...");
+      const localProduct = products.find(p => p.id === productId);
+      if (localProduct) {
+        console.log("✅ Found local product:", localProduct);
+        console.log("🔄 Setting selectedProductDetail from local...");
+        setSelectedProductDetail(localProduct);
+        console.log("🔄 Setting showDetail to true...");
+        setShowDetail(true);
+      } else {
+        console.error("❌ No local product found for ID:", productId);
+        alert("Lỗi: " + (err.message || "Không thể tải sản phẩm"));
+      }
+    } finally {
+      console.log("🔄 Setting loading to false...");
+      setLoadingDetail(false);
+      console.log("═════════ [END] fetchProductDetail ═════════\n");
+    }
+  };
+  // Hàm xử lý khi click vào sản phẩm trong danh sách
+  const handleSelectProduct = async (id: string) => {
+    setSelectedProductId(id);
+
+    // Gọi contract để lấy chi tiết sản phẩm
+    await fetchProductDetail(id);
+
+    setEditingProductId(null);
+    setIsAddingProduct(false);
+  };
   return (
     <div className="h-screen bg-gray-50">
       <div className="h-full flex">
@@ -381,7 +457,7 @@ function App() {
           {menu === 'products' && (
             <div className="h-[calc(100vh-260px)]">
               <div className="bg-white rounded shadow overflow-auto h-full">
-                <ProductList
+                {/* <ProductList
                   products={products}
                   loading={loadingProducts}
                   onSelect={id => {
@@ -392,6 +468,14 @@ function App() {
                     setEditingProductId(null);
                     setIsAddingProduct(false);
                   }}
+                  onEdit={handleEditProduct}
+                  onDelete={handleDeleteProduct}
+                  onAdd={handleAddProduct}
+                /> */}
+                <ProductList
+                  products={products}
+                  loading={loadingProducts}
+                  onSelect={handleSelectProduct} // Dùng hàm mới
                   onEdit={handleEditProduct}
                   onDelete={handleDeleteProduct}
                   onAdd={handleAddProduct}

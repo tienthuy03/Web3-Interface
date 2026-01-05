@@ -33,10 +33,7 @@ export default function ProductList({
   loading = false,
 }: Props) {
   const [query, setQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState<"all" | "in" | "sold" | "expired" | "stopped">("all")
-  const [selectedProduct, setSelectedProduct] = useState<any | null>(null)
-  const [showDetail, setShowDetail] = useState(false)
-
+  const [statusFilter, setStatusFilter] = useState<"all" | 0 | 1 | 2 | 3>("all")
   const nowSec = Math.floor(Date.now() / 1000)
 
   function statusLabel(p: Product) {
@@ -46,16 +43,35 @@ export default function ProductList({
     return "Ngừng bán"
   }
 
+  function getProductStatus(p: Product, nowSec: number): 0 | 1 | 2 | 3 {
+    if (p.expiryDate && p.expiryDate > 0 && p.expiryDate < nowSec) return 3 // Hết hạn
+    if (p.status === 0) return 0 // Đang lưu hành
+    if (p.status === 1) return 1 // Đã bán
+    return 2 // Ngừng bán
+  }
+
   const filtered = useMemo(() => {
+    const q = query.toLowerCase().trim()
+
     return products.filter(p => {
-      if (query && !p.name.toLowerCase().includes(query.toLowerCase())) return false
-      if (statusFilter === "in") return statusLabel(p) === "Đang lưu hành"
-      if (statusFilter === "sold") return statusLabel(p) === "Đã bán"
-      if (statusFilter === "expired") return statusLabel(p) === "Hết hạn"
-      if (statusFilter === "stopped") return statusLabel(p) === "Ngừng bán"
+      /** SEARCH */
+      if (q) {
+        const match =
+            p.name?.toLowerCase().includes(q) ||
+            p.category?.toLowerCase().includes(q) ||
+            p.brand?.toLowerCase().includes(q)
+
+        if (!match) return false
+      }
+
+      if (statusFilter !== 'all') {
+        const productStatus = getProductStatus(p, nowSec)
+        if (productStatus !== statusFilter) return false
+      }
+
       return true
     })
-  }, [products, query, statusFilter])
+  }, [products, query, statusFilter, nowSec])
 
   return (
     <>
@@ -75,16 +91,22 @@ export default function ProductList({
             />
 
             <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="px-3 py-2 border rounded-lg text-sm"
+                value={statusFilter}
+                onChange={(e) =>
+                    setStatusFilter(e.target.value === 'all'
+                        ? 'all'
+                        : Number(e.target.value) as 0 | 1 | 2 | 3
+                    )
+                }
+                className="px-3 py-2 border rounded-lg text-sm"
             >
               <option value="all">Tất cả</option>
-              <option value="in">Đang lưu hành</option>
-              <option value="sold">Đã bán</option>
-              <option value="expired">Hết hạn</option>
-              <option value="stopped">Ngừng bán</option>
+              <option value={0}>Đang lưu hành</option>
+              <option value={1}>Đã bán</option>
+              <option value={2}>Ngừng bán</option>
+              <option value={3}>Hết hạn</option>
             </select>
+
 
             <button onClick={onAdd} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg shadow text-sm">+ Thêm</button>
           </div>

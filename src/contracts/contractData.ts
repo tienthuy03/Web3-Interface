@@ -1,4 +1,4 @@
-export const CONTRACT_ADDRESS = "0x493d65cb75f004998bab84d922ab41c959d4db52"
+export const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS
 
 // Minimal ABI snippets for common read methods used by the UI.
 // Replace or extend with the real contract ABI when available.
@@ -17,20 +17,20 @@ export const ABI = [
     "string batchCode," +
     "string category," +
     "string brand," +
-    "string origin," +
-    "string supplier," +
-    "string distributor," +
-    "string retailer," +
+    "string originCountry," +
+    "string name," +
+    "string description," +
+    "string ingredients," +
     "uint256 manufactureDate," +
     "uint256 expiryDate," +
     "uint256 price," +
     "string currency," +
     "address owner," +
+    "uint8 scanCount," +
+    "uint8 scanCount," +
+    "string imageURI," +
+    "string documentURI," +
     "uint8 status," +
-    "uint8 qualityStatus," +
-    "string imageUrl," +
-    "string documentUrl," +
-    "uint8 verifyStatus," +
     "uint256 createdAt" +
     ")[])",
 

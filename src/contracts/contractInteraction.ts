@@ -188,31 +188,32 @@ export async function getProductsFromChain(provider?: any): Promise<any[]> {
     try {
       console.log("🔄 Trying getAllProducts()...")
       const allProducts = await contract.getAllProducts()
-
+console.log(allProducts)
       if (Array.isArray(allProducts) && allProducts.length > 0) {
         const mapped = allProducts.map((p: any, index: number) => {
           // Map according to ABI: id, sku, batchCode, category, brand, origin, supplier, distributor, retailer, 
           // manufactureDate, expiryDate, price, currency, owner, status, qualityStatus, imageUrl, documentUrl, verifyStatus, createdAt
+          console.log('p =', p)
           return {
             id: Number(p.id ?? p[0] ?? index + 1),
-            batchId: p.batchCode ?? p[2] ?? "",
-            productCode: p.sku ?? p[1] ?? "",
-            name: p.category ?? p[3] ?? "", // Using category as name if name not available
+            sku: p.batchCode ?? p[2] ?? "",
+            batchNumber: p.sku ?? p[1] ?? "",
+            category: p.category ?? p[3] ?? "",
             brand: p.brand ?? p[4] ?? "",
-            origin: p.origin ?? p[5] ?? "",
-            certHash: p.supplier ?? p[6] ?? "", // Using supplier as certHash placeholder
-            txHash: p.distributor ?? p[7] ?? "", // Using distributor as txHash placeholder
-            metadataHash: p.retailer ?? p[8] ?? "", // Using retailer as metadataHash placeholder
+            originCountry: p.originCountry ?? p[5] ?? "",
+            name: p.name ?? p[6] ?? "",
+            description: p.description ?? p[7] ?? "",
+            ingredients: p.ingredients ?? p[8] ?? "",
             manufactureDate: Number(p.manufactureDate ?? p[9] ?? 0),
             expiryDate: Number(p.expiryDate ?? p[10] ?? 0),
             price: Number(p.price ?? p[11] ?? 0),
             currency: p.currency ?? p[12] ?? "",
             owner: p.owner ?? p[13] ?? "",
-            status: Number(p.status ?? p[14] ?? 0),
-            verifyStatus: Number(p.verifyStatus ?? p[18] ?? 0),
+            scanCount: Number(p.scanCount ?? p[14] ?? 0),
+            lastScannedAt: Number(p.lastScannedAt ?? p[15] ?? 0),
             imageUrl: p.imageUrl ?? p[16] ?? "",
             documentUrl: p.documentUrl ?? p[17] ?? "",
-            deleted: 0, // Not in getAllProducts ABI
+            status: Number(p.verifyStatus ?? p[18] ?? 0),
             createdAt: Number(p.createdAt ?? p[19] ?? 0),
           }
         })

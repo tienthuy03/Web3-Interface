@@ -176,7 +176,7 @@ function App() {
           currency: p.currency ?? "VND",
           // Additional blockchain fields
           batchId: p.batchId ?? "",
-          productCode: p.productCode ?? "",
+          productCode: p.sku ?? "",
           origin: p.origin ?? "",
           certHash: p.certHash ?? "",
           txHash: p.txHash ?? "",

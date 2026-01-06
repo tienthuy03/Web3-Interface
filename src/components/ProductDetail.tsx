@@ -100,19 +100,6 @@ export default function ProductDetail({ product, role = 'viewer', onAction, onSc
               Sửa
             </button>
           )}
-
-          {/* Delete Button */}
-          {(role === 'owner' || role === 'manufacturer') && (
-            <button
-              onClick={() => onDelete(product.id)}
-              className="px-4 py-2 bg-red-50 text-red-700 hover:bg-red-100 text-sm font-medium rounded-lg border border-red-200 transition-colors flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-              Xóa
-            </button>
-          )}
         </div>
       </div>
 
@@ -161,7 +148,7 @@ export default function ProductDetail({ product, role = 'viewer', onAction, onSc
                 <div className="text-sm text-gray-500 mt-1">
                   ID: <span className="font-mono">{product?.id}</span>
                   {product?.batchNumber && (
-                    <> • Mã SP: <span className="font-mono">{product.batchNumber}</span></>
+                    <> • Mã SP: <span className="font-mono">{product.sku}</span></>
                   )}
                 </div>
               </div>
@@ -172,6 +159,11 @@ export default function ProductDetail({ product, role = 'viewer', onAction, onSc
 
         {/* Basic Info grid */}
         <div className="grid grid-cols-2 gap-4 text-sm">
+          {/* Product Codes */}
+          <Info label="Mã lô">
+            <span className="font-mono text-xs">{product.batchNumber}</span>
+          </Info>
+
           <Info label="Giá bán">
             <span className="font-semibold text-gray-800">
               {formatPrice(product?.price)} {product?.currency || 'VND'}
@@ -212,22 +204,6 @@ export default function ProductDetail({ product, role = 'viewer', onAction, onSc
             <VerifyStatusBadge verifyStatus={product?.verifyStatus} />
           </Info> */}
         </div>
-
-        {/* Product Codes */}
-        {(product?.batchNumber) && (
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            {product.batchNumber && (
-              <Info label="Mã lô">
-                <span className="font-mono text-xs">{product.batchNumber}</span>
-              </Info>
-            )}
-            {product.sku && (
-              <Info label="Mã sản phẩm">
-                <span className="font-mono text-xs">{product.sku}</span>
-              </Info>
-            )}
-          </div>
-        )}
 
         {/* Blockchain Info */}
         <div className="border-t pt-4">

@@ -211,15 +211,6 @@ export default function ProductList({
                         >
                           Sửa
                         </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onDelete(p.id)
-                          }}
-                          className="text-xs text-red-600 hover:underline"
-                        >
-                          Xóa
-                        </button>
                       </div>
                     </td>
                   </tr>

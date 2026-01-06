@@ -109,6 +109,10 @@ export default function ScannedPage({ product }: Props) {
 
           {/* Basic Info grid */}
           <div className="grid grid-cols-2 gap-4 text-sm">
+            <Info label="Mã lô">
+              <span className="font-mono text-xs">{product.batchNumber}</span>
+            </Info>
+
             <Info label="Giá bán">
               <span className="font-semibold text-gray-800">
                 {formatPrice(product.price)} {product.currency || 'VND'}
@@ -145,22 +149,6 @@ export default function ScannedPage({ product }: Props) {
               <StatusBadge status={product.status} />
             </Info>
           </div>
-
-          {/* Product Codes */}
-          {(product.batchNumber || product.sku) && (
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              {product.batchNumber && (
-                <Info label="Mã lô">
-                  <span className="font-mono text-xs">{product.batchNumber}</span>
-                </Info>
-              )}
-              {product.sku && (
-                <Info label="Mã sản phẩm">
-                  <span className="font-mono text-xs">{product.sku}</span>
-                </Info>
-              )}
-            </div>
-          )}
 
           {/* Blockchain Info */}
           <div className="border-t pt-4">

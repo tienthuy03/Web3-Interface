@@ -37,5 +37,30 @@ export const ABI = [
     ")[])",
 
     // ROLE
-    "function roles(address) view returns (uint8)"
+    "function roles(address) view returns (uint8)",
+
+    //CATEGORY
+    // add category
+    "function addCategory(string name)",
+    // update category name
+    "function updateCategory(uint256 id, string newName)",
+    // enable / disable category
+    "function setCategoryStatus(uint256 id, bool active)",
+    // get category by id (public mapping)
+    "function categories(uint256) view returns (uint256 id, string name, bool active)",
+    // get all
+    "function getAllCategories() view returns (tuple(uint256 id, string name, bool active)[])",
+
+    //BRAND
+    // add brand
+    "function addBrand(string name)",
+    // update brand name
+    "function updateBrand(uint256 id, string newName)",
+    // enable / disable brand
+    "function setBrandStatus(uint256 id, bool active)",
+    // get brand by id (public mapping)
+    "function brands(uint256) view returns (uint256 id, string name, bool active)",
+    // get all
+    "function getAllBrands() view returns (tuple(uint256 id, string name, bool active)[])",
+
 ]

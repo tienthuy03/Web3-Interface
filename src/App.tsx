@@ -7,14 +7,14 @@ import { ABI, CONTRACT_ADDRESS } from './contracts/contractData';
 import { ExternalLink } from 'lucide-react';
 import { BrowserProvider, Contract } from 'ethers';
 import { useEffect, useState } from 'react';
-import TransactionDetail from './components/TransactionDetail';
-import TransactionList from './components/TransactionList';
+import CategoryDetail from './components/CategoryDetail';
+import CategoryList from './components/CategoryList';
 import ProductDetail from './components/ProductDetail';
 import ProductForm from './components/ProductForm';
 import ProductList from './components/ProductList';
 import TransferProduct from './components/TransferProduct';
 import ScannedPage from './components/ScannedPage';
-import { getProductsFromChain, getProductFromChain } from './contracts/contractInteraction'
+import {getProductsFromChain, getProductFromChain, getAllCategory} from './contracts/contractInteraction'
 import TransferDelivery from './components/TransferDelivery';
 
 type Product = {
@@ -29,17 +29,11 @@ type Product = {
   currency?: string
 }
 
-type Transaction = {
-  id: string
-  title: string
-  amount: number
-  date: string
-  description?: string
+type Category = {
+  id: number,
+  name: string,
+  active: boolean,
 }
-const sampleTransactions: Transaction[] = [
-  { id: 't1', title: 'Mua Áo thun', amount: 150000, date: '2025-12-20', description: 'Khách hàng A' },
-  { id: 't2', title: 'Mua Quần jeans', amount: 350000, date: '2025-12-21', description: 'Khách hàng B' },
-]
 
 // 1. Get projectId
 const projectId = import.meta.env.VITE_WALLETCONNECT_ID;
@@ -219,6 +213,9 @@ function App() {
         };
       });
 
+      const chainCategories = await getAllCategory(ethersProvider);
+      setCategories(chainCategories)
+      console.log("✅ mapped chainCategories =", chainCategories);
       console.log("✅ mapped products =", mapped);
       setProducts(mapped);
 
@@ -240,10 +237,10 @@ function App() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [isAddingProduct, setIsAddingProduct] = useState(false)
   const selectedProduct = products.find(p => p.id === selectedProductId) ?? null
-  const [transactions, setTransactions] = useState<Transaction[]>(sampleTransactions)
-  const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null)
-  const selectedTransaction = transactions.find(t => t.id === selectedTransactionId) ?? null
-  const [menu, setMenu] = useState<'products' | 'transactions' | 'analytics' | 'transfer' | 'transferDelivery'>('products')
+  const [categories, setCategories] = useState<Category[]>([])
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null)
+  const selectedCategory = categories?.find(t => t.id === selectedCategoryId) ?? null
+  const [menu, setMenu] = useState<'products' | 'categories' | 'analytics' | 'transfer' | 'transferDelivery'>('products')
   const [scannedData, setScannedData] = useState<any | null>(null)
   // ===== Dashboard computed counts =====
   const totalProducts = products.length
@@ -286,15 +283,49 @@ function App() {
     setSelectedProductId(null)
     setShowEditModal(true)
   }
-  const handleSelectTransaction = (id: string) => {
-    setSelectedTransactionId(id)
+  const handleSelectCategory = (id: string) => {
+    setSelectedCategoryId(id)
   }
-  const handleDeleteTransaction = (id: string) => {
-    setTransactions(prev => prev.filter(t => t.id !== id))
-    if (selectedTransactionId === id) setSelectedTransactionId(null)
+  const handleDeleteCategory = (id: string) => {
+    setCategories(prev => prev.filter(t => t.id !== id))
+    if (selectedCategoryId === id) setSelectedCategoryId(null)
   }
 
   const [loadingDetail, setLoadingDetail] = useState(false)
+
+  const changeCategoryStatus = async (id: number, active: boolean) => {
+    if (!walletProvider) return
+    console.log('start changeCategoryStatus', id, active)
+    try {
+      const provider = new BrowserProvider(walletProvider)
+      const signer = await provider.getSigner()
+      const contract = new Contract(CONTRACT_ADDRESS, ABI, signer)
+
+      console.log("Changing category:", id, active)
+
+      const tx = await contract.setCategoryStatus(id, active)
+      console.log("TX hash:", tx.hash)
+
+      await tx.wait()
+      console.log("TX mined")
+
+      const updated = await contract.categories(id)
+      console.log("AFTER UPDATE:", updated)
+
+      // Update UI sau khi on-chain success
+      setCategories(prev =>
+          prev.map(cat =>
+              cat.id === id ? { ...cat, active } : cat
+          )
+      )
+      console.log('changeCategoryStatus success')
+      alert('Thay đổi thành công')
+    } catch (err) {
+      console.error('❌ changeCategoryStatus error:', err)
+      alert('Không thể thay đổi trạng thái category')
+    }
+  }
+
 
   const fetchProductDetail = async (productId: string) => {
     try {
@@ -392,7 +423,7 @@ function App() {
                 <button onClick={() => setMenu('products')} className={`w-full text-left px-3 py-2 rounded ${menu === 'products' ? 'bg-blue-50 text-blue-600 font-medium' : 'hover:bg-gray-100'}`}>Products</button>
               </li>
               <li>
-                <button onClick={() => setMenu('transactions')} className={`w-full text-left px-3 py-2 rounded ${menu === 'transactions' ? 'bg-blue-50 text-blue-600 font-medium' : 'hover:bg-gray-100'}`}>Transactions</button>
+                <button onClick={() => setMenu('categories')} className={`w-full text-left px-3 py-2 rounded ${menu === 'categories' ? 'bg-blue-50 text-blue-600 font-medium' : 'hover:bg-gray-100'}`}>Category</button>
               </li>
               <li>
                 <button onClick={() => setMenu('transfer')} className={`w-full text-left px-3 py-2 rounded ${menu === 'transfer' ? 'bg-blue-50 text-blue-600 font-medium' : 'hover:bg-gray-100'}`}>Transfer Product</button>
@@ -484,15 +515,15 @@ function App() {
             </div>
           )}
 
-          {menu === 'transactions' && (
-            <div className="grid grid-cols-3 gap-6 h-[calc(100vh-260px)]">
-              <div className="col-span-2 bg-white rounded shadow overflow-auto">
-                <TransactionList transactions={transactions} onSelect={handleSelectTransaction} onDelete={handleDeleteTransaction} />
+          {menu === 'categories' && (
+              <div className="grid grid-cols-3 gap-6 h-[calc(100vh-260px)]">
+                <div className="col-span-2 bg-white rounded shadow overflow-auto">
+                  <CategoryList categories={categories} onSelect={handleSelectCategory} onChangeStatus={changeCategoryStatus}/>
+                </div>
+                <div className="col-span-1 bg-white rounded shadow overflow-auto">
+                  <CategoryDetail category={selectedCategory} onBack={() => setSelectedCategoryId(null)} />
+                </div>
               </div>
-              <div className="col-span-1 bg-white rounded shadow overflow-auto">
-                <TransactionDetail transaction={selectedTransaction} onBack={() => setSelectedTransactionId(null)} />
-              </div>
-            </div>
           )}
 
           {menu === 'transfer' && (

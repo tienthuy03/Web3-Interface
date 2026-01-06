@@ -225,6 +225,35 @@ export async function getProductsFromChain(provider?: any): Promise<any[]> {
   }
 }
 
+export async function getAllCategory(provider?: any): Promise<any[]> {
+  try {
+    const finalProvider = provider || await getProvider()
+    const contract = getContract(finalProvider)
+
+    try {
+      const allCategories = await contract.getAllCategories()
+
+      if (Array.isArray(allCategories) && allCategories?.length > 0) {
+        const mapped = allCategories.map((p: any, index: number) => {
+
+          return {
+            id: Number(p.id ?? p[0] ?? index + 1),
+            name: p.name ?? p[1] ?? "",
+            active: p.active ?? p[2] ?? "",
+          }
+        })
+
+        return mapped
+      }
+    } catch (getAllErr) {
+      console.log("⚠️ getAllCategories failed, trying fallback method...", getAllErr)
+    }
+  } catch (err) {
+    console.error("❌ getAllCategories error:", err)
+    throw err
+  }
+}
+
 
 
 export default {

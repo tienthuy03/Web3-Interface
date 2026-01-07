@@ -561,7 +561,7 @@ function App() {
 
           {/* Global edit modal */}
           {showEditModal && editingProductId && (() => {
-            const product = products.find(p => p.id === editingProductId)
+            const product = selectedProductDetail
             console.log("453 product: ", product);
 
             if (!product) return null
@@ -569,20 +569,20 @@ function App() {
               <ProductForm
                 initial={{
                   id: product.id,
-                  sku: (product as any).productCode || (product as any).sku || '',
-                  batchNumber: (product as any).batchId || (product as any).batchNumber || '',
+                  sku: product.sku || '',
+                  batchNumber: product.batchNumber || '',
                   category: product.category || '',
                   brand: product.brand || '',
-                  originCountry: (product as any).origin || '',
+                  originCountry: product.originCountry,
                   name: product.name || '',
                   description: product.description || '',
                   ingredients: product.ingredients || '',
-                  manufactureDate: product.manufactureDate ? (product.manufactureDate > 1e12 ? product.manufactureDate : product.manufactureDate * 1000) : undefined,
-                  expiryDate: product.expiryDate ? (product.expiryDate > 1e12 ? product.expiryDate : product.expiryDate * 1000) : undefined,
+                  manufactureDate: product.manufactureDate,
+                  expiryDate: product.expiryDate,
                   price: product.price || 0,
                   currency: product.currency || 'VND',
-                  imagePath: product.imageUrl || product.image || '',
-                  documentPath: (product as any).documentUrl || ''
+                  imagePath: product.imageUrl,
+                  documentPath: product.documentUrl || ''
                 }}
                 onSave={handleSaveProduct}
                 onCancel={() => { setShowEditModal(false); setEditingProductId(null) }}

@@ -10,7 +10,9 @@ import { BrowserRouter } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import './index.css'
 import App from './App.tsx'
+import { initWeb3Modal } from './contracts/web3Modal'
 
+initWeb3Modal()
 createRoot(document.getElementById('root')!).render(
   <BrowserRouter>
     <Toaster

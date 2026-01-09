@@ -1,4 +1,4 @@
-import { getInitials } from "../utils/help"
+import { getInitials } from "../utils/helpers.tsx"
 import { useMemo, useState } from "react"
 
 type Product = {

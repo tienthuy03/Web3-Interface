@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { getProductFromChain } from '../contracts/contractInteraction';
+import { getProductFromChain } from '../contracts';
 
 export const useProductScanner = () => {
   const location = useLocation();

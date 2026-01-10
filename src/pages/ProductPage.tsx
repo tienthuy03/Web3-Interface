@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import ScannedPage from '../components/ScannedPage'
-import { getProductFromChain } from '../contracts/contractInteraction'
+import { getProductFromChain } from '../contracts'
 
 export default function ProductPage() {
   const location = useLocation()

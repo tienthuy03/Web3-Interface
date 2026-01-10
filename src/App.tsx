@@ -5,6 +5,7 @@ import { useWeb3ModalAccount } from '@web3modal/ethers/react';
 import './config/web3Config'; // Initialize Web3Modal
 import { useProducts } from './hooks/useProducts';
 import { useProductScanner } from './hooks/useProductScanner';
+import { useCategories} from "./hooks/useCategories";
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { DashboardStats } from './components/DashboardStats';
@@ -27,12 +28,12 @@ function App() {
   const { scannedProduct, loadingScan } = useProductScanner();
   const {
     products,
-    categories,
     loadingProducts,
     setProducts,
     fetchProductDetail,
-    changeCategoryStatus
   } = useProducts();
+
+  const { categories, changeCategoryStatus} = useCategories();
 
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);

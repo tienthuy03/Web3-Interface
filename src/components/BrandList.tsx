@@ -7,7 +7,7 @@ type Props = {
     onAdd: () => void
 }
 
-export default function CategoryList({ categories, onSelect, onChangeStatus, onAdd }: Props) {
+export default function BrandList({ categories, onSelect, onChangeStatus, onAdd }: Props) {
     return (
         <div>
             <div className="flex items-center p-2 justify-between gap-4">
@@ -23,7 +23,7 @@ export default function CategoryList({ categories, onSelect, onChangeStatus, onA
             </div>
             <div className="p-5">
                 {categories?.length === 0 ? (
-                    <div className="text-gray-500">Không có category nào</div>
+                    <div className="text-gray-500">Không có brand nào</div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="min-w-full border border-gray-200 rounded-lg overflow-hidden">

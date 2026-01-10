@@ -11,12 +11,11 @@ export default function ProductPage() {
 
   useEffect(() => {
     const fetchProduct = async () => {
-      // Parse ID from pathname: /products/123 or /product/123
       const pathMatch = location.pathname.match(/\/(?:products?|product)\/(.+)$/)
       const id = pathMatch ? pathMatch[1] : null
-      
+
       console.log('🚀 ProductPage: Starting fetch, pathname:', location.pathname, 'id:', id)
-      
+
       if (!id) {
         console.error('❌ ProductPage: No ID found in URL pathname')
         setError('Không tìm thấy ID sản phẩm')
@@ -27,54 +26,43 @@ export default function ProductPage() {
       try {
         setLoading(true)
         const productId = parseInt(id, 10)
-        
         console.log('🔍 ProductPage: Parsed product ID:', productId, 'from string:', id)
-        
         if (isNaN(productId) || productId <= 0) {
           console.error('❌ ProductPage: Invalid product ID:', productId)
           setError(`ID sản phẩm không hợp lệ: ${id}`)
           setLoading(false)
           return
         }
-
         console.log('📡 ProductPage: Calling getProductFromChain with ID:', productId)
         const productData = await getProductFromChain(productId)
-        
         console.log('📦 ProductPage: Received product data:', productData)
-        
-        // Check if product exists
+
         if (!productData) {
           console.error('❌ ProductPage: No product data returned')
           setError(`Không tìm thấy sản phẩm với ID: ${productId}`)
           setLoading(false)
           return
         }
-        
-        // Check if product has valid ID (even if 0, it's valid)
+
         if (productData.id === undefined || productData.id === null) {
           console.error('❌ ProductPage: Product data missing ID field')
           setError(`Sản phẩm ID ${productId} không có dữ liệu hợp lệ (thiếu ID)`)
           setLoading(false)
           return
         }
-        
+
         console.log('✅ ProductPage: Product data validated, ID:', productData.id)
-        
-        // Map data to match ScannedPage expected format
-        // Handle imageURI - if it's a relative path, convert to full URL
-        let imageUrl = productData.imageUrl || productData.imageURI || ''
+        let imageUrl = productData.imageURI || ''
         if (imageUrl && imageUrl.startsWith('/public/')) {
-          // Convert relative path to full URL
           const baseUrl = window.location.origin
           imageUrl = `${baseUrl}${imageUrl}`
         }
-        
-        // Use category as name if name is empty or looks like a placeholder (0x...)
+
         let productName = productData.name || ''
         if (!productName || productName.startsWith('0x') || productName === productData.sku) {
           productName = productData.category || 'Sản phẩm'
         }
-        
+
         const mappedProduct = {
           id: productData.id,
           name: productName,
@@ -87,7 +75,6 @@ export default function ProductPage() {
           owner: productData.owner || '',
           status: productData.status || 0,
           imageUrl: imageUrl,
-          // Additional fields for ScannedPage
           category: productData.category || '',
           brand: productData.brand || '',
           originCountry: productData.originCountry || '',
@@ -95,7 +82,6 @@ export default function ProductPage() {
           sku: productData.sku || '',
           batchNumber: productData.batchNumber || '',
         }
-
         console.log('✅ ProductPage: Mapped product:', mappedProduct)
         setProduct(mappedProduct)
       } catch (err: any) {
@@ -106,7 +92,7 @@ export default function ProductPage() {
           data: err?.data,
           stack: err?.stack
         })
-        
+
         // Extract user-friendly error message
         let errorMessage = 'Không thể tải thông tin sản phẩm'
         if (err?.message) {
@@ -116,7 +102,7 @@ export default function ProductPage() {
         } else if (err?.code === 'NETWORK_ERROR') {
           errorMessage = 'Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet.'
         }
-        
+
         setError(errorMessage)
       } finally {
         setLoading(false)

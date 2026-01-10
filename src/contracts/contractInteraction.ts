@@ -2,22 +2,15 @@
 import { ethers } from "ethers"
 import { CONTRACT_ADDRESS, ABI } from "./contractData"
 
-/**
- * Get provider (BrowserProvider nếu có wallet, fallback default với RPC)
- */
 export async function getProvider() {
-  // Try to use wallet provider if available
   if (typeof window !== "undefined" && (window as any).ethereum) {
     try {
       const browserProvider = new ethers.BrowserProvider((window as any).ethereum)
-      // Don't request accounts for read-only operations
       return browserProvider
     } catch (e) {
       console.log("Wallet provider failed, using RPC:", e)
     }
   }
-
-  // Use RPC provider for read-only operations (works without wallet)
   const rpcUrl = import.meta.env.VITE_ETH_SEPOLIA_RPC_URL
   console.log('🔧 getProvider: RPC URL from env:', rpcUrl ? 'Found' : 'Not found')
 
@@ -30,10 +23,8 @@ export async function getProvider() {
     }
   }
 
-  // Fallback to public RPC providers
   console.log('🔧 getProvider: Using public Sepolia RPC')
   try {
-    // Try multiple public RPC endpoints
     const publicRpcs = [
       'https://rpc.sepolia.org',
       'https://sepolia.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161', // Public Infura key
@@ -55,15 +46,10 @@ export async function getProvider() {
   } catch (err) {
     console.error('❌ getProvider: All RPC providers failed:', err)
   }
-
-  // Last resort: default provider
   console.log('🔧 getProvider: Using ethers default provider')
   return ethers.getDefaultProvider("sepolia")
 }
 
-/**
- * Get contract instance
- */
 function getContract(providerOrSigner: any) {
   return new ethers.Contract(CONTRACT_ADDRESS, ABI, providerOrSigner)
 }
@@ -75,20 +61,17 @@ export async function getProductFromChain(productId: number) {
 
     console.log(`📡 [STEP 4] Đang gọi contract.products(${productId})...`);
 
-    // Gọi hàm products
     const p = await contract.products(productId);
     console.log('📦 [STEP 5] Dữ liệu nhận được:', p);
 
-    // Kiểm tra tồn tại qua owner (dựa trên ảnh Etherscan của bạn)
     if (!p.owner || p.owner === '0x0000000000000000000000000000000000000000') {
       return null;
     }
 
-    // Map dữ liệu (Ethers v6 sẽ tự gán tên field nếu ABI có định nghĩa tên)
     const mapped = {
       id: p.id?.toString() || productId.toString(),
       sku: p.sku || '',
-      batchNumber: p.batchNumber || '', // Ảnh Etherscan ghi rõ là batchNumber
+      batchNumber: p.batchNumber || '',
       category: p.category || '',
       brand: p.brand || '',
       originCountry: p.originCountry || '',
@@ -116,28 +99,18 @@ export async function getProductFromChain(productId: number) {
     throw err;
   }
 }
-/**
- * 🔹 Get ALL products from chain
- * Compatible with:
- * - getAllProducts() (preferred)
- * - productCounter() + products(id) (fallback)
- */
+
 export async function getProductsFromChain(provider?: any): Promise<any[]> {
   try {
-    // Use provided provider or get default provider
     const finalProvider = provider || await getProvider()
     const contract = getContract(finalProvider)
 
-    // Try getAllProducts() first (more efficient)
     try {
       console.log("🔄 Trying getAllProducts()...")
       const allProducts = await contract.getAllProducts()
 
       if (Array.isArray(allProducts) && allProducts.length > 0) {
         const mapped = allProducts.map((p: any, index: number) => {
-          // Map according to ABI: id, sku, batchCode, category, brand, origin, supplier, distributor, retailer, 
-          // manufactureDate, expiryDate, price, currency, owner, status, qualityStatus, imageUrl, documentUrl, verifyStatus, createdAt
-
           return {
             id: Number(p.id ?? p[0] ?? index + 1),
             sku: p.sku ?? p[1] ?? "",
@@ -191,14 +164,9 @@ export async function getProductsFromChain(provider?: any): Promise<any[]> {
 
         list.push({
           id: Number(p[0]),
-          batchId: p[1],
-          productCode: p[2],
           name: p[3],
           brand: p[4],
           origin: p[5],
-          certHash: p[6],
-          txHash: p[7],
-          metadataHash: p[8],
           manufactureDate: Number(p[9]),
           expiryDate: Number(p[10]),
           price: Number(p[11]),

@@ -3,42 +3,8 @@ import { useWeb3ModalProvider } from '@web3modal/ethers/react';
 import { BrowserProvider, Contract } from 'ethers';
 import { ABI, CONTRACT_ADDRESS } from '../contracts/contractData';
 import { getProductsFromChain, getProductFromChain, getAllCategory } from '../contracts/contractInteraction';
-
-export type Product = {
-  id: string
-  name: string
-  price: number
-  description?: string
-  image?: string
-  owner?: string
-  category?: string
-  brand?: string
-  currency?: string
-  imageUrl?: string
-  ingredients?: string
-  manufactureDate?: number
-  expiryDate?: number
-  createdAt?: number
-  status?: number
-  batchId?: string
-  productCode?: string
-  sku?: string
-  origin?: string
-  certHash?: string
-  txHash?: string
-  metadataHash?: string
-  documentUrl?: string
-  verifyStatus?: number
-  deleted?: number
-  batchNumber?: string
-  originCountry?: string
-}
-
-export type Category = {
-  id: number
-  name: string
-  active: boolean
-}
+import type { Product } from '../types/product';
+import type { Category } from '../types/category';
 
 export const useProducts = () => {
   const { walletProvider } = useWeb3ModalProvider();
@@ -74,20 +40,13 @@ export const useProducts = () => {
         createdAt: p.createdAt ? Number(p.createdAt) : undefined,
         owner: p.owner ?? "",
         status: p.status !== undefined ? Number(p.status) : undefined,
-        image: p.imageUrl ?? "",
         imageUrl: p.imageUrl ?? "",
         category: p.category ?? "",
         brand: p.brand ?? "",
         currency: p.currency ?? "VND",
-        batchId: p.batchId ?? "",
-        productCode: p.sku ?? "",
         origin: p.origin ?? "",
-        certHash: p.certHash ?? "",
-        txHash: p.txHash ?? "",
-        metadataHash: p.metadataHash ?? "",
         documentUrl: p.documentUrl ?? "",
         verifyStatus: p.verifyStatus !== undefined ? Number(p.verifyStatus) : undefined,
-        deleted: p.deleted !== undefined ? Number(p.deleted) : undefined,
       }));
 
       const chainCategories = await getAllCategory(ethersProvider);

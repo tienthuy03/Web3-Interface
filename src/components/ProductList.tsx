@@ -1,19 +1,19 @@
-import { getInitials } from "../utils/help"
+import type { Product } from "../types/product"
+import { getInitials } from "../utils/helper"
 import { useMemo, useState } from "react"
 
-type Product = {
-  id: string
-  name: string
-  price: number
-  currency?: string
-  category?: string
-  brand?: string
-  expiryDate?: number
-  status?: number
-  image?: string
-  imageUrl?: string
-}
-
+// type Product = {
+//   id: string
+//   name: string
+//   price: number
+//   currency?: string
+//   category?: string
+//   brand?: string
+//   expiryDate?: number
+//   status?: number
+//   image?: string
+//   imageUrl?: string
+// }
 
 type Props = {
   products: Product[]
@@ -57,9 +57,9 @@ export default function ProductList({
       /** SEARCH */
       if (q) {
         const match =
-            p.name?.toLowerCase().includes(q) ||
-            p.category?.toLowerCase().includes(q) ||
-            p.brand?.toLowerCase().includes(q)
+          p.name?.toLowerCase().includes(q) ||
+          p.category?.toLowerCase().includes(q) ||
+          p.brand?.toLowerCase().includes(q)
 
         if (!match) return false
       }
@@ -91,14 +91,14 @@ export default function ProductList({
             />
 
             <select
-                value={statusFilter}
-                onChange={(e) =>
-                    setStatusFilter(e.target.value === 'all'
-                        ? 'all'
-                        : Number(e.target.value) as 0 | 1 | 2 | 3
-                    )
-                }
-                className="px-3 py-2 border rounded-lg text-sm"
+              value={statusFilter}
+              onChange={(e) =>
+                setStatusFilter(e.target.value === 'all'
+                  ? 'all'
+                  : Number(e.target.value) as 0 | 1 | 2 | 3
+                )
+              }
+              className="px-3 py-2 border rounded-lg text-sm"
             >
               <option value="all">Tất cả</option>
               <option value={0}>Đang lưu hành</option>
@@ -106,8 +106,6 @@ export default function ProductList({
               <option value={2}>Ngừng bán</option>
               <option value={3}>Hết hạn</option>
             </select>
-
-
             <button onClick={onAdd} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg shadow text-sm">+ Thêm</button>
           </div>
         </div>

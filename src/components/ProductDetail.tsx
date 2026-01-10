@@ -57,23 +57,11 @@ export default function ProductDetail({ product, role = 'viewer', onAction, onSc
   useEffect(() => {
     if (!product) return
 
-    // Generate URL for QR code
-    // Use current hostname - if accessing via IP, it will use IP
-    // If accessing via localhost, user needs to access via network IP
     const hostname = window.location.hostname
     const protocol = window.location.protocol
     const port = window.location.port ? `:${window.location.port}` : ''
-
-    // Replace localhost with actual network IP if available
-    // For mobile devices, they need to access via network IP like http://192.168.1.x:5173
     let baseUrl = `${protocol}//${hostname}${port}`
-
-    // If on localhost, show a note that user should use network IP
-    // But we can't detect network IP from browser, so we'll use what's in the URL
     const productUrl = `${baseUrl}/products/${product.id}`
-
-    console.log('QR Code URL:', productUrl)
-
     toDataURL(productUrl, { width: 180, margin: 2 })
       .then(setQrDataUrl)
       .catch(() => setQrDataUrl(productUrl))
@@ -103,11 +91,8 @@ export default function ProductDetail({ product, role = 'viewer', onAction, onSc
         </div>
       </div>
 
-      {/* Main card */}
       <div className="bg-white rounded-xl border shadow-sm p-5 space-y-4">
-        {/* Product Name with Image */}
         <div className="flex items-start gap-4">
-          {/* Small Product Image */}
           <div className="flex-shrink-0">
             {(product?.imageURI) ? (
               <img
@@ -115,7 +100,6 @@ export default function ProductDetail({ product, role = 'viewer', onAction, onSc
                 alt={product?.name ?? ""}
                 className="w-20 h-20 rounded-lg object-cover border shadow-sm"
                 onError={(e) => {
-                  // Show placeholder if image fails to load
                   const target = e.target as HTMLImageElement
                   target.style.display = 'none'
                   const parent = target.parentElement
@@ -140,7 +124,6 @@ export default function ProductDetail({ product, role = 'viewer', onAction, onSc
             )}
           </div>
 
-          {/* Product Name and Info */}
           <div className="flex-1">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
@@ -161,7 +144,7 @@ export default function ProductDetail({ product, role = 'viewer', onAction, onSc
         <div className="grid grid-cols-2 gap-4 text-sm">
           {/* Product Codes */}
           <Info label="Mã lô">
-            <span className="font-mono text-xs">{product.batchNumber}</span>
+            <span className="font-mono text-xs">{product?.batchNumber}</span>
           </Info>
 
           <Info label="Giá bán">
@@ -199,10 +182,6 @@ export default function ProductDetail({ product, role = 'viewer', onAction, onSc
           <Info label="Trạng thái">
             <StatusBadge status={product?.status} />
           </Info>
-
-          {/* <Info label="Trạng thái xác minh">
-            <VerifyStatusBadge verifyStatus={product?.verifyStatus} />
-          </Info> */}
         </div>
 
         {/* Blockchain Info */}
@@ -212,21 +191,6 @@ export default function ProductDetail({ product, role = 'viewer', onAction, onSc
             <Info label="Chủ sở hữu">
               <span className="font-mono text-xs break-all">{product?.owner || '-'}</span>
             </Info>
-            {/* {product.txHash && (
-              <Info label="Transaction Hash">
-                <span className="font-mono text-xs break-all">{product.txHash}</span>
-              </Info>
-            )}
-            {product.certHash && (
-              <Info label="Certificate Hash">
-                <span className="font-mono text-xs break-all">{product.certHash}</span>
-              </Info>
-            )}
-            {product.metadataHash && (
-              <Info label="Metadata Hash">
-                <span className="font-mono text-xs break-all">{product.metadataHash}</span>
-              </Info>
-            )} */}
             {product?.documentURI && (
               <Info label="Tài liệu">
                 <a href={product?.documentURI} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs">
@@ -322,7 +286,7 @@ export default function ProductDetail({ product, role = 'viewer', onAction, onSc
                 <>
                   <img
                     src={qrDataUrl}
-                    alt={`QR ${product.id}`}
+                    alt={`QR ${product?.id}`}
                     className="mx-auto w-40 h-40 border rounded-lg p-2 bg-white"
                   />
 

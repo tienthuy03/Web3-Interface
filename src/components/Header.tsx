@@ -1,13 +1,13 @@
 import React from 'react';
 import { useWeb3Modal, useWeb3ModalAccount } from '@web3modal/ethers/react';
-import { shortenAddr } from '../lib/utils';
+import { shortenAddr } from '../utils/helper';
 
 export const Header: React.FC = () => {
   const { open } = useWeb3Modal();
   const { address, isConnected } = useWeb3ModalAccount();
 
   return (
-    <header className='container mx-auto py-2 px-2 border-b'>
+    <header className='container mx-auto py-2  border-b'>
       <div className='flex justify-between items-center'>
         <div className='flex items-center gap-2'>
           <div>

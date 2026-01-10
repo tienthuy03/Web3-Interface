@@ -1,11 +1,11 @@
 import React from 'react';
 import { ExternalLink } from 'lucide-react';
-import { shortenAddr } from '../lib/utils';
+import { shortenAddr } from '../utils/helper';
 import { CONTRACT_ADDRESS } from '../contracts/contractData';
 
 interface SidebarProps {
-  activeMenu: 'products' | 'categories' | 'analytics' | 'transferProduct' | 'transferDelivery';
-  onMenuChange: (menu: 'products' | 'categories' | 'analytics' | 'transferProduct' | 'transferDelivery') => void;
+  activeMenu: 'products' | 'categories' | 'brands' | 'analytics' | 'transferProduct' | 'transferDelivery';
+  onMenuChange: (menu: 'products' | 'categories' | 'brands' | 'analytics' | 'transferProduct' | 'transferDelivery') => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeMenu, onMenuChange }) => {
@@ -40,6 +40,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeMenu, onMenuChange }) =>
               onClick={() => onMenuChange('categories')}
               className={`w-full text-left px-3 py-2 rounded ${activeMenu === 'categories' ? 'bg-blue-50 text-blue-600 font-medium' : 'hover:bg-gray-100'}`}>
               Category
+            </button>
+          </li>
+          <li>
+            <button
+              onClick={() => onMenuChange('brands')}
+              className={`w-full text-left px-3 py-2 rounded ${activeMenu === 'brands' ? 'bg-blue-50 text-blue-600 font-medium' : 'hover:bg-gray-100'}`}>
+              Brand
             </button>
           </li>
           <li>

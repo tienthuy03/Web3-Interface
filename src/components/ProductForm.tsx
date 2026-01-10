@@ -1,10 +1,10 @@
 import React, { useState } from 'react'
 import toast from 'react-hot-toast'
 import { ethers } from "ethers"
-import { toTimestamp } from "../utils/help.tsx";
+import { toTimestamp } from "../utils/helper.tsx";
 import { ABI, CONTRACT_ADDRESS } from '../contracts/contractData.ts'
 import { uploadFile } from '../utils/fileUpload.tsx'
-import type { ProductFormData } from '@/types/product'
+import type { ProductFormData } from '../types/product.ts';
 
 type Props = {
   initial?: Partial<ProductFormData>
@@ -18,22 +18,18 @@ const BRAND_OPTIONS = ['Thương hiệu A', 'Thương hiệu B', 'Thương hiệ
 const COUNTRY_OPTIONS = ['Việt Nam', 'Thái Lan', 'Nhật Bản', 'Mỹ']
 const CURRENCY_OPTIONS = ['VND', 'USD']
 
-// Helper function to get batch number from various possible field names
 const getBatchNumber = (data: any): string => {
   return data?.batchNumber || data?.batchId || data?.batch || data?.batchNo || ''
 }
 
-// Helper function to get image URL from various possible field names
 const getImageUrl = (data: any): string => {
   return data?.imageUrl || data?.image || data?.imagePath || ''
 }
 
-// Helper function to get document URL from various possible field names
 const getDocumentUrl = (data: any): string => {
   return data?.documentUrl || data?.document || data?.documentPath || ''
 }
 
-// Helper function to get origin/country from various field names
 const getOriginCountry = (data: any): string => {
   return data?.originCountry || data?.origin || COUNTRY_OPTIONS[0]
 }
@@ -101,12 +97,7 @@ export async function createProductOnChain(form: {
     form.imageFile,
     form.documentFile,
   )
-
-  console.log("⏳ Tx hash:", tx.hash)
-
   const receipt = await tx.wait()
-  console.log("✅ Tx confirmed:", receipt)
-
   return receipt
 }
 
@@ -175,17 +166,11 @@ export async function updateProductOnChain(productId: number, form: {
     form.imageFile,
     form.documentFile,
   )
-
-  console.log("⏳ Update Tx hash:", tx.hash)
-
   const receipt = await tx.wait()
-  console.log("✅ Update Tx confirmed:", receipt)
-
   return receipt
 }
 
 export default function ProductForm({ initial = {}, onSave, onCancel, asModal = false }: Props) {
-  // Initialize state with proper field mapping
   const [sku, setSku] = useState(initial.sku ?? '')
   const [batchNumber, setBatchNumber] = useState(getBatchNumber(initial))
   const [category, setCategory] = useState(initial.category ?? CATEGORY_OPTIONS[0])
@@ -194,11 +179,8 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
   const [name, setName] = useState(initial.name ?? '')
   const [description, setDescription] = useState(initial.description ?? '')
   const [ingredients, setIngredients] = useState(initial.ingredients ?? '')
-
-  // Convert timestamp (seconds or milliseconds) to YYYY-MM-DD format
   const formatDateForInput = (timestamp?: number): string => {
     if (!timestamp || timestamp === 0) return ''
-    // If timestamp is in seconds (less than 1e12), convert to milliseconds
     const ms = timestamp > 1e12 ? timestamp : timestamp * 1000
     try {
       return new Date(ms).toISOString().slice(0, 10)
@@ -211,15 +193,10 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
   const [expiryDate, setExpiryDate] = useState(formatDateForInput(initial.expiryDate))
   const [price, setPrice] = useState<number>(initial.price ?? 0)
   const [currency, setCurrency] = useState(initial.currency ?? CURRENCY_OPTIONS[0])
-
-  // File states
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [documentFile, setDocumentFile] = useState<File | null>(null)
-
-  // Keep track of existing URLs (when editing)
   const [currentImageUrl, setCurrentImageUrl] = useState(getImageUrl(initial))
   const [currentDocumentUrl, setCurrentDocumentUrl] = useState(getDocumentUrl(initial))
-
   const isEdit = !!(initial as any).id
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -232,10 +209,8 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
     const loadingToast = toast.loading(isEdit ? 'Đang cập nhật sản phẩm...' : 'Đang tạo sản phẩm...')
 
     try {
-      let imageFilePath = currentImageUrl // Keep existing URL if no new file
+      let imageFilePath = currentImageUrl
       let documentFilePath = currentDocumentUrl
-
-      // Upload new files if provided
       try {
         if (imageFile) {
           imageFilePath = await uploadFile(imageFile)
@@ -249,7 +224,6 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
       }
 
       if (isEdit) {
-        // Update existing product
         const productId = Number((initial as any).id)
         console.log(productId, imageFilePath, documentFilePath)
         try {
@@ -277,7 +251,6 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
         }
         return;
       } else {
-        // Create new product
         try {
           await createProductOnChain({
             sku,
@@ -302,8 +275,6 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
           throw createErr
         }
       }
-
-      // Call onSave callback
       await onSave({
         sku,
         batchNumber,
@@ -329,7 +300,6 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
 
   const form = (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {/* SKU + Batch */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium mb-1">Mã SKU *</label>
@@ -349,7 +319,6 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
         </div>
       </div>
 
-      {/* Category + Brand */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium mb-1">Danh mục</label>
@@ -373,7 +342,6 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
         </div>
       </div>
 
-      {/* Origin + Name */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium mb-1">Quốc gia xuất xứ</label>
@@ -395,7 +363,6 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
         </div>
       </div>
 
-      {/* Description */}
       <div>
         <label className="block text-sm font-medium mb-1">Mô tả</label>
         <textarea
@@ -406,7 +373,6 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
         />
       </div>
 
-      {/* Ingredients */}
       <div>
         <label className="block text-sm font-medium mb-1">Thành phần</label>
         <textarea
@@ -417,7 +383,6 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
         />
       </div>
 
-      {/* Dates */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium mb-1">Ngày sản xuất *</label>
@@ -441,7 +406,6 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
         </div>
       </div>
 
-      {/* Price */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium mb-1">Giá *</label>
@@ -470,11 +434,8 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
         </div>
       </div>
 
-      {/* Image */}
       <div>
         <label className="block text-sm font-medium mb-1">Ảnh sản phẩm</label>
-
-        {/* Display current image if exists */}
         {currentImageUrl && !imageFile && (
           <div className="mb-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
             <div className="flex items-center justify-between">
@@ -509,7 +470,7 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
             onChange={e => {
               const file = e.target.files?.[0] || null
               setImageFile(file)
-              if (file) setCurrentImageUrl('') // Clear old URL when selecting new file
+              if (file) setCurrentImageUrl('')
             }}
           />
         </label>
@@ -527,11 +488,8 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
         )}
       </div>
 
-      {/* Document */}
       <div>
         <label className="block text-sm font-medium mb-1">Tài liệu (PDF/DOC)</label>
-
-        {/* Display current document if exists */}
         {currentDocumentUrl && !documentFile && (
           <div className="mb-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
             <div className="flex items-center justify-between">
@@ -566,7 +524,7 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
             onChange={e => {
               const file = e.target.files?.[0] || null
               setDocumentFile(file)
-              if (file) setCurrentDocumentUrl('') // Clear old URL when selecting new file
+              if (file) setCurrentDocumentUrl('')
             }}
           />
         </label>
@@ -584,7 +542,6 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
         )}
       </div>
 
-      {/* Actions */}
       <div className="flex justify-end gap-3 pt-4 border-t">
         <button
           type="button"

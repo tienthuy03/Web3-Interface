@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useWeb3ModalAccount } from '@web3modal/ethers/react';
@@ -15,6 +16,9 @@ import ProductList from './components/ProductList';
 import TransferProduct from './components/TransferProduct';
 import ScannedPage from './components/ScannedPage';
 import TransferDelivery from './components/TransferDelivery';
+import type { Category } from './types/category';
+import BrandList from './components/BrandList';
+import BrandDetail from './components/BrandDetail';
 
 function App() {
   const location = useLocation();
@@ -38,30 +42,40 @@ function App() {
   const [showDetail, setShowDetail] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [scannedData, setScannedData] = useState<any | null>(null);
-  const getCurrentMenu = (): 'products' | 'categories' | 'analytics' | 'transferProduct' | 'transferDelivery' => {
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  // Xác định menu hiện tại từ URL
+  const getCurrentMenu = (): 'products' | 'categories' | 'brands' | 'analytics' | 'transferProduct' | 'transferDelivery' => {
     const path = location.pathname;
     if (path.startsWith('/categories')) return 'categories';
+    if (path.startsWith('/brands')) return 'brands';
     if (path.startsWith('/analytics')) return 'analytics';
     if (path.startsWith('/transfer-delivery')) return 'transferDelivery';
     if (path.startsWith('/transfer-product')) return 'transferProduct';
+    if (path.startsWith('/products')) return 'products';
     return 'products';
   };
-  const [menu, setMenu] = useState<'products' | 'categories' | 'analytics' | 'transferProduct' | 'transferDelivery'>(getCurrentMenu());
+
+  const [menu, setMenu] = useState<'products' | 'categories' | 'brands' | 'analytics' | 'transferProduct' | 'transferDelivery'>(getCurrentMenu());
+
+  // Redirect từ / sang /products
   useEffect(() => {
     if (location.pathname === '/') {
       navigate('/products', { replace: true });
     }
   }, [location.pathname, navigate]);
 
+  // Sync menu state với URL
   useEffect(() => {
     setMenu(getCurrentMenu());
   }, [location.pathname]);
 
-  const handleMenuChange = (newMenu: 'products' | 'categories' | 'analytics' | 'transferProduct' | 'transferDelivery') => {
+  // Hàm thay đổi menu và update URL
+  const handleMenuChange = (newMenu: 'products' | 'categories' | 'brands' | 'analytics' | 'transferProduct' | 'transferDelivery') => {
     setMenu(newMenu);
     const routes = {
       products: '/products',
       categories: '/categories',
+      brands: '/brands',
       analytics: '/analytics',
       transferProduct: '/transfer-product',
       transferDelivery: '/transfer-delivery'
@@ -71,6 +85,7 @@ function App() {
 
   const selectedCategory = categories?.find(t => t.id === selectedCategoryId) ?? null;
 
+  // Handle scanned product routes
   if (location.pathname.startsWith('/products/') || location.pathname.startsWith('/product/')) {
     if (loadingScan) {
       return (
@@ -96,6 +111,7 @@ function App() {
     return <ScannedPage product={scannedProduct} />;
   }
 
+  // Product handlers
   const handleAddProduct = () => {
     setEditingProductId(null);
     setSelectedProductId(null);
@@ -149,7 +165,31 @@ function App() {
   };
 
   const handleSelectCategory = (id: number) => {
+    const found = categories?.find(t => t.id === id);
     setSelectedCategoryId(id);
+  };
+  const handleAddCategory = () => {
+    setIsCreatingCategory(true);
+    setSelectedCategoryId(null);
+  };
+
+  const handleSaveCategory = (categoryData: Category | Omit<Category, 'id'>) => {
+    if ('id' in categoryData) {
+      console.log('Update category:', categoryData);
+    } else {
+      const newCategory = {
+        ...categoryData,
+        id: Date.now(),
+      };
+      console.log('Create new category:', newCategory);
+      // TODO: Gọi API tạo category và cập nhật state
+    }
+    setIsCreatingCategory(false);
+  };
+
+  const handleBackFromCategoryDetail = () => {
+    setIsCreatingCategory(false);
+    setSelectedCategoryId(null);
   };
 
   return (
@@ -160,7 +200,7 @@ function App() {
         <main className="flex-1 overflow-auto p-6">
           <Header />
           <DashboardStats products={products} />
-
+          {/* Menu content */}
           {menu === 'products' && (
             <div className="h-[calc(100vh-260px)]">
               <div className="bg-white rounded shadow overflow-auto h-full">
@@ -181,14 +221,48 @@ function App() {
               <div className="col-span-2 bg-white rounded shadow overflow-auto">
                 <CategoryList
                   categories={categories}
-                  onSelect={handleSelectCategory}
+                  onSelect={(id) => {
+                    console.log('Selected category ID:', id);
+                    handleSelectCategory(id);
+                    setIsCreatingCategory(false);
+                  }}
                   onChangeStatus={changeCategoryStatus}
+                  onAdd={handleAddCategory}
                 />
               </div>
               <div className="col-span-1 bg-white rounded shadow overflow-auto">
                 <CategoryDetail
                   category={selectedCategory}
-                  onBack={() => setSelectedCategoryId(null)}
+                  onBack={handleBackFromCategoryDetail}
+                  onSave={handleSaveCategory}
+                  isCreating={isCreatingCategory}
+                  onCreate={handleSaveCategory}
+                />
+              </div>
+            </div>
+          )}
+
+          {menu === 'brands' && (
+            <div className="grid grid-cols-3 gap-6 h-[calc(100vh-260px)]">
+              <div className="col-span-2 bg-white rounded shadow overflow-auto">
+                <BrandList
+                  categories={categories}
+                  onSelect={(id) => {
+                    console.log('Selected category ID:', id);
+                    handleSelectCategory(id);
+                    setIsCreatingCategory(false);
+                  }}
+                  onChangeStatus={changeCategoryStatus}
+                  onAdd={handleAddCategory}
+                />
+              </div>
+              <div className="col-span-1 bg-white rounded shadow overflow-auto">
+                <BrandDetail
+                  category={selectedCategory}
+                  onBack={handleBackFromCategoryDetail}
+                  onSave={handleSaveCategory}
+                  isCreating={isCreatingCategory}
+                  onCreate={handleSaveCategory}
                 />
               </div>
             </div>
@@ -243,6 +317,7 @@ function App() {
             </div>
           )}
 
+          {/* Edit Modal */}
           {showEditModal && editingProductId && (() => {
             const product = products.find(p => p.id === editingProductId);
             if (!product) return null;
@@ -280,6 +355,7 @@ function App() {
             );
           })()}
 
+          {/* Create Modal */}
           {showCreateModal && (
             <ProductForm
               initial={{}}
@@ -289,6 +365,7 @@ function App() {
             />
           )}
 
+          {/* Detail Modal */}
           {showDetail && selectedProductDetail && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
               <div
@@ -330,7 +407,7 @@ function App() {
                         setShowDetail(false);
                         handleMenuChange('analytics');
                       }
-                      if (a === 'transferProduct') {
+                      if (a === 'transfer') {
                         setShowDetail(false);
                         handleMenuChange('transferProduct');
                       }

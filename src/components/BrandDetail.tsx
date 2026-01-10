@@ -10,7 +10,7 @@ type Props = {
   onCreate?: (category: Omit<Category, 'id'>) => void
 }
 
-export default function CategoryDetail({
+export default function BrandDetail({
   category,
   onBack,
   onSave,
@@ -63,7 +63,7 @@ export default function CategoryDetail({
 
   const handleDelete = () => {
     if (category && onDelete) {
-      if (confirm(`Bạn có chắc muốn xóa category "${category.name}"?`)) {
+      if (confirm(`Bạn có chắc muốn xóa brand "${category.name}"?`)) {
         onDelete(category.id)
         onBack()
       }
@@ -76,14 +76,14 @@ export default function CategoryDetail({
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="text-gray-400 text-5xl mb-3">📁</div>
-            <div className="text-gray-500">Chọn một category để xem chi tiết</div>
+            <div className="text-gray-500">Chọn một brand để xem chi tiết</div>
           </div>
         </div>
       </div>
     )
   }
 
-  const title = isCreating ? "Thêm Category mới" : "Chi tiết Category"
+  const title = isCreating ? "Thêm brand mới" : "Chi tiết Brand"
 
   return (
     <div className="p-5">
@@ -121,7 +121,7 @@ export default function CategoryDetail({
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="p-4 border-b border-gray-200">
           <h4 className="font-semibold text-gray-900">
-            {isCreating ? "Thông tin category mới" : "Thông tin chi tiết"}
+            {isCreating ? "Thông tin brand mới" : "Thông tin chi tiết"}
           </h4>
         </div>
 

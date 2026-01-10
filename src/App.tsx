@@ -1,6 +1,8 @@
+
+// export default App
 import { useLocation } from 'react-router-dom'
-import { useWeb3Modal, useWeb3ModalAccount, useWeb3ModalProvider } from '@web3modal/ethers/react'
-import { shortenAddr } from './utils/helpers';
+import { createWeb3Modal, defaultConfig, useWeb3Modal, useWeb3ModalAccount, useWeb3ModalProvider } from '@web3modal/ethers/react'
+import { shortenAddr } from './lib/utils';
 import { ABI, CONTRACT_ADDRESS } from './contracts/contractData';
 import { ExternalLink } from 'lucide-react';
 import { BrowserProvider, Contract } from 'ethers';
@@ -14,9 +16,55 @@ import TransferProduct from './components/TransferProduct';
 import ScannedPage from './components/ScannedPage';
 import {getProductsFromChain, getProductFromChain, getAllCategory} from './contracts/contractInteraction'
 import TransferDelivery from './components/TransferDelivery';
-import type { Product } from './types/product';
-import type { Category } from './types/category';
 
+type Product = {
+  id: string
+  name: string
+  price: number
+  description?: string
+  image?: string
+  owner?: string
+  category?: string
+  brand?: string
+  currency?: string
+}
+
+type Category = {
+  id: number,
+  name: string,
+  active: boolean,
+}
+
+// 1. Get projectId
+const projectId = import.meta.env.VITE_WALLETCONNECT_ID;
+// 2. Set chains
+const sepolia = {
+  chainId: 11155111,
+  name: 'Ethereum Sepolia',
+  currency: 'ETH',
+  explorerUrl: 'https://sepolia.etherscan.io',
+  rpcUrl: import.meta.env.VITE_ETH_SEPOLIA_RPC_URL
+}
+// 3. Create a metadata object
+const metadata = {
+  name: "Crowdfunding Interface",
+  description: "My Website helpe user using Crowdfunding contract",
+  url: 'https://mywebsite.com', // origin must match your domain & subdomai
+  icons: ['https://avatars.mywebsite.com/']
+}
+// 4. Create Ethers config
+const ethersConfig = defaultConfig({
+  metadata,
+  enableEIP6963: true, // true by default
+  enableInjected: true, // true by default
+})
+// 5. Create a AppKit instance
+createWeb3Modal({
+  ethersConfig,
+  chains: [sepolia],
+  projectId,
+  enableAnalytics: true // false by default
+})
 function App() {
   const location = useLocation()
   const { open } = useWeb3Modal();
@@ -25,6 +73,7 @@ function App() {
   const [scannedProduct, setScannedProduct] = useState<any | null>(null);
   const [loadingScan, setLoadingScan] = useState(false);
 
+  // useEffect lắng nghe thay đổi URL để fetch dữ liệu từ Blockchain
   useEffect(() => {
     const pathMatch = location.pathname.match(/\/(?:products?|product)\/(.+)$/);
     if (pathMatch) {
@@ -53,6 +102,7 @@ function App() {
     }
   }, [location.pathname]);
 
+  // Nếu là route quét, render ScannedPage với trạng thái loading
   if (location.pathname.startsWith('/products/') || location.pathname.startsWith('/product/')) {
     if (loadingScan) {
       return (
@@ -63,6 +113,7 @@ function App() {
       );
     }
 
+    // Nếu không tìm thấy sp trên chain, có thể hiện thông báo lỗi hoặc dùng local demo
     if (!scannedProduct && !loadingScan) {
       return (
         <div className="h-screen flex items-center justify-center">
@@ -77,7 +128,7 @@ function App() {
 
     return <ScannedPage product={scannedProduct} />;
   }
-
+  // Nếu đang ở trang quét, hiển thị ScannedPage với dữ liệu thật
   if (location.pathname.startsWith('/products/') || location.pathname.startsWith('/product/')) {
     if (loadingScan) {
       return (

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { useWeb3ModalProvider } from "@web3modal/ethers/react"
 import { BrowserProvider, Contract } from "ethers"
 import { ABI, CONTRACT_ADDRESS } from "../contracts/contractData"
-import { getAllCategories } from "../contracts"
+import { getAllCategories, addCategory, updateCategory } from "../contracts"
 import type { Category } from "../types/category"
 
 export const useCategories = () => {
@@ -52,6 +52,37 @@ export const useCategories = () => {
     }
   }
 
+  /**
+   * Create category
+   */
+  const createCategory = async (name: string) => {
+    if (!walletProvider) return
+
+    try {
+      const provider = new BrowserProvider(walletProvider)
+
+      return await addCategory(provider, name)
+    } catch (err) {
+      console.error("❌ createCategory error:", err)
+      throw err
+    }
+  }
+
+  /**
+   * Update category name
+   */
+  const updateCategoryName = async (id: number, name: string) => {
+    if (!walletProvider) return
+
+    try {
+      const provider = new BrowserProvider(walletProvider)
+      return await updateCategory(provider, id, name)
+    } catch (err) {
+      console.error("❌ updateCategory error:", err)
+      throw err
+    }
+  }
+
   useEffect(() => {
     fetchCategories()
   }, [walletProvider])
@@ -59,7 +90,9 @@ export const useCategories = () => {
   return {
     categories,
     loadingCategories,
-    refetchCategories: fetchCategories,
+    fetchCategories,
     changeCategoryStatus,
+    createCategory,
+    updateCategoryName,
   }
 }

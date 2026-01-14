@@ -70,12 +70,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeMenu, onMenuChange }) =>
               Analytics
             </button>
           </li>
-          <li>
-            <button className="w-full text-left px-3 py-2 rounded hover:bg-gray-100">Messages</button>
-          </li>
-          <li>
-            <button className="w-full text-left px-3 py-2 rounded hover:bg-gray-100">Customers</button>
-          </li>
         </ul>
       </nav>
 

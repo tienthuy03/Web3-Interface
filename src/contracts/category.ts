@@ -21,3 +21,34 @@ export async function getAllCategories(provider?: any): Promise<any[]> {
 
     return []
 }
+
+/**
+ * Create new category
+ */
+export async function addCategory(
+    provider?: any,
+    name?: string,
+) {
+    const finalProvider = provider || await getProvider()
+    const signer = await finalProvider.getSigner()
+    const contract = getContract(signer)
+
+    const tx = await contract.addCategory(name)
+    return await tx.wait()
+}
+
+/**
+ * Update category name
+ */
+export async function updateCategory(
+    provider: any,
+    id: number,
+    newName: string
+) {
+    const finalProvider = provider || await getProvider()
+    const signer = await finalProvider.getSigner()
+    const contract = getContract(signer)
+
+    const tx = await contract.updateCategory(id, newName)
+    return await tx.wait()
+}

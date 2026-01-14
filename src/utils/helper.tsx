@@ -29,6 +29,10 @@ export function shortenAddr(address?: string):
 
 }
 
+export function totalPages (totalItems: number, itemsPerPage: number): number {
+    return Math.ceil(totalItems / itemsPerPage);
+}
+
 
 
 

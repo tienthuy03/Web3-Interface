@@ -33,7 +33,7 @@ function App() {
     fetchProductDetail,
   } = useProducts();
 
-  const { categories, changeCategoryStatus} = useCategories();
+  const { categories, changeCategoryStatus, fetchCategories} = useCategories();
 
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
@@ -219,7 +219,7 @@ function App() {
 
           {menu === 'categories' && (
             <div className="grid grid-cols-3 gap-6 h-[calc(100vh-260px)]">
-              <div className="col-span-2 bg-white rounded shadow overflow-auto">
+              <div className="col-span-2 bg-white rounded shadow overflow-hidden">
                 <CategoryList
                   categories={categories}
                   onSelect={(id) => {
@@ -234,9 +234,11 @@ function App() {
               <div className="col-span-1 bg-white rounded shadow overflow-auto">
                 <CategoryDetail
                   category={selectedCategory}
+                  categories={categories}
                   onBack={handleBackFromCategoryDetail}
                   onSave={handleSaveCategory}
                   isCreating={isCreatingCategory}
+                  onRefresh={fetchCategories}
                   onCreate={handleSaveCategory}
                 />
               </div>

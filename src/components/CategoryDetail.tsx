@@ -18,7 +18,6 @@ export default function CategoryDetail({
   category,
   categories,
   onBack,
-  onSave,
   onDelete,
   isCreating = false,
   onRefresh
@@ -137,8 +136,6 @@ export default function CategoryDetail({
       </div>
     )
   }
-
-  const title = isCreating ? "Thêm Category mới" : "Chi tiết Category"
 
   return (
     <div className="p-5">

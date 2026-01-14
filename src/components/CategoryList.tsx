@@ -25,7 +25,9 @@ export default function CategoryList({
     /* ================== DATA THEO PAGE ================== */
     const pagedCategories = useMemo(() => {
         const start = (page - 1) * pageSize
-        return categories.slice(start, start + pageSize)
+        return [...categories]
+            .sort((a, b) => b.id - a.id)
+            .slice(start, start + pageSize)
     }, [categories, page])
 
     /* ================== FIX: LIST THAY ĐỔI ================== */

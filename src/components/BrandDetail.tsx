@@ -1,189 +1,209 @@
 import { useState, useEffect } from "react"
-import type { Category } from "../types/category"
+import type { Brand } from "../types/brand"
+import { useBrands } from "../hooks/useBrands"
+import toast from "react-hot-toast"
 
 type Props = {
-  category?: Category | null
+  brand?: Brand | null
+  brands: Brand[]
   onBack: () => void
-  onSave?: (category: Category) => void
   onDelete?: (id: number) => void
   isCreating?: boolean
-  onCreate?: (category: Omit<Category, 'id'>) => void
+  onRefresh: () => Promise<void>
 }
 
 export default function BrandDetail({
-  category,
-  onBack,
-  onSave,
-  onDelete,
-  isCreating = false,
-  onCreate
-}: Props) {
+                                      brand,
+                                      brands,
+                                      onBack,
+                                      onDelete,
+                                      isCreating = false,
+                                      onRefresh,
+                                    }: Props) {
+  const { createBrand, updateBrandName } = useBrands()
+
   const [isEditing, setIsEditing] = useState(isCreating)
-  const [editedName, setEditedName] = useState(isCreating ? "" : (category?.name || ""))
+  const [editedName, setEditedName] = useState(isCreating ? "" : brand?.name || "")
+  const [error, setError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const isDisabled = !editedName.trim() || isSubmitting || !!error
 
   useEffect(() => {
-    if (category && !isCreating) {
-      setEditedName(category.name)
+    if (brand && !isCreating) {
+      setEditedName(brand.name)
     }
-  }, [category, isCreating])
+  }, [brand, isCreating])
+
+  const isDuplicateName = (name: string) => {
+    const normalized = name.trim().toLowerCase()
+
+    return brands.some(b => {
+      if (!isCreating && b.id === brand?.id) return false
+      return b.name.trim().toLowerCase() === normalized
+    })
+  }
 
   const handleEdit = () => {
-    if (category) {
-      setEditedName(category.name)
+    if (brand) {
+      setEditedName(brand.name)
       setIsEditing(true)
     }
   }
 
-  const handleSave = () => {
-    if (isCreating && onCreate && editedName.trim()) {
-      onCreate({
-        name: editedName.trim(),
-        active: true
-      })
-      setEditedName("")
-      setIsEditing(false)
-      onBack()
-    } else if (category && onSave && editedName.trim()) {
-      onSave({
-        ...category,
-        name: editedName.trim()
-      })
-      setIsEditing(false)
+  const handleSave = async () => {
+    if (isSubmitting) return
+
+    const loadingToast = toast.loading(
+        isCreating ? "Đang tạo brand..." : "Đang cập nhật brand..."
+    )
+    setIsSubmitting(true)
+
+    try {
+      if (isCreating) {
+        const receipt = await createBrand(editedName.trim())
+
+        if (receipt?.status === 1) {
+          await onRefresh()
+          toast.success("✅ Tạo brand thành công!")
+          onBack()
+        } else {
+          toast.error("❌ Transaction failed")
+        }
+        return
+      }
+
+      if (brand) {
+        const receipt = await updateBrandName(brand.id, editedName.trim())
+
+        if (receipt?.status === 1) {
+          await onRefresh()
+          toast.success("✅ Cập nhật brand thành công!")
+          setIsEditing(false)
+        } else {
+          toast.error("❌ Transaction failed")
+        }
+      }
+    } catch (err) {
+      console.error(err)
+      toast.error("❌ Xảy ra lỗi!")
+    } finally {
+      toast.dismiss(loadingToast)
+      setIsSubmitting(false)
     }
   }
 
   const handleCancel = () => {
-    if (isCreating) {
-      onBack()
-    } else {
+    if (isCreating) onBack()
+    else {
       setIsEditing(false)
-      setEditedName(category?.name || "")
+      setEditedName(brand?.name || "")
     }
   }
 
   const handleDelete = () => {
-    if (category && onDelete) {
-      if (confirm(`Bạn có chắc muốn xóa brand "${category.name}"?`)) {
-        onDelete(category.id)
+    if (brand && onDelete) {
+      if (confirm(`Bạn có chắc muốn xóa brand "${brand.name}"?`)) {
+        onDelete(brand.id)
         onBack()
       }
     }
   }
 
-  if (!category && !isCreating) {
+  if (!brand && !isCreating) {
     return (
-      <div className="p-5">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="text-gray-400 text-5xl mb-3">📁</div>
-            <div className="text-gray-500">Chọn một brand để xem chi tiết</div>
-          </div>
+        <div className="p-5 text-center text-gray-500">
+          📦 Chọn một brand để xem chi tiết
         </div>
-      </div>
     )
   }
 
-  const title = isCreating ? "Thêm brand mới" : "Chi tiết Brand"
-
   return (
-    <div className="p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onBack}
-            className="text-sm text-gray-600 hover:text-gray-900 transition"
-          >
+      <div className="p-5">
+        <div className="flex justify-between mb-4">
+          <button onClick={onBack} className="text-sm text-gray-600">
             ← Quay lại
           </button>
-          <h2 className="text-lg font-semibold">{title}</h2>
-        </div>
 
-        {!isEditing && category && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleEdit}
-              className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-            >
-              ✏️ Sửa
-            </button>
-            {onDelete && (
-              <button
-                onClick={handleDelete}
-                className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-              >
-                🗑️ Xóa
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-4 border-b border-gray-200">
-          <h4 className="font-semibold text-gray-900">
-            {isCreating ? "Thông tin brand mới" : "Thông tin chi tiết"}
-          </h4>
-        </div>
-
-        <div className="p-4 space-y-3">
-          {!isCreating && (
-            <div className="flex items-center justify-between py-2 border-b border-gray-100">
-              <span className="text-sm text-gray-600">ID Category</span>
-              <span className="text-sm font-medium text-gray-900">#{category?.id}</span>
-            </div>
-          )}
-
-          <div className="flex items-center justify-between py-2 border-b border-gray-100">
-            <span className="text-sm text-gray-600">Tên Category</span>
-            {isEditing || isCreating ? (
-              <input
-                type="text"
-                value={editedName}
-                onChange={(e) => setEditedName(e.target.value)}
-                className="text-sm font-medium text-gray-900 bg-white border border-blue-400 rounded px-3 py-2 flex-1 ml-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Nhập tên category"
-                autoFocus
-              />
-            ) : (
-              <span className="text-sm font-medium text-gray-900">{category?.name}</span>
-            )}
-          </div>
-
-          {!isCreating && category && (
-            <div className="flex items-center justify-between py-2">
-              <span className="text-sm text-gray-600">Trạng thái</span>
-              <span className="text-sm font-medium">
-                {category.active ? (
-                  <span className="text-green-600">✓ Đang hoạt động</span>
-                ) : (
-                  <span className="text-gray-600">○ Tạm dừng</span>
+          {!isEditing && brand && (
+              <div className="flex gap-2">
+                <button
+                    onClick={handleEdit}
+                    className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm"
+                >
+                  ✏️ Sửa
+                </button>
+                {onDelete && (
+                    <button
+                        onClick={handleDelete}
+                        className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm"
+                    >
+                      🗑️ Xóa
+                    </button>
                 )}
-              </span>
-            </div>
-          )}
-
-          {(isEditing || isCreating) && (
-            <div className="flex gap-2 pt-3 border-t border-gray-100">
-              <button
-                onClick={handleSave}
-                disabled={!editedName.trim()}
-                className={`flex-1 px-4 py-2 rounded-lg transition text-sm font-medium ${editedName.trim()
-                  ? "bg-green-600 text-white hover:bg-green-700"
-                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  }`}
-              >
-                {isCreating ? "Tạo mới" : "Lưu"}
-              </button>
-              <button
-                onClick={handleCancel}
-                className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition text-sm font-medium"
-              >
-                Hủy
-              </button>
-            </div>
+              </div>
           )}
         </div>
+
+        <div className="bg-white border rounded-lg">
+          <div className="p-4 border-b font-semibold">
+            {isCreating ? "Thêm brand mới" : "Thông tin brand"}
+          </div>
+
+          <div className="p-4 space-y-3">
+            {!isCreating && (
+                <div className="flex justify-between">
+                  <span>ID</span>
+                  <span>#{brand?.id}</span>
+                </div>
+            )}
+
+            <div className="flex justify-between items-center">
+              <span>Tên Brand</span>
+              {(isEditing || isCreating) ? (
+                  <input
+                      value={editedName}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setEditedName(value)
+
+                        if (!value.trim()) setError("Tên brand không được để trống")
+                        else if (isDuplicateName(value)) setError("Tên brand đã tồn tại")
+                        else setError(null)
+                      }}
+                      className="border rounded px-3 py-2 ml-4 flex-1"
+                      autoFocus
+                  />
+              ) : (
+                  <span className="font-medium">{brand?.name}</span>
+              )}
+            </div>
+
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+
+            {(isEditing || isCreating) && (
+                <div className="flex gap-2 pt-3">
+                  <button
+                      onClick={handleSave}
+                      disabled={isDisabled}
+                      className={`flex-1 py-2 rounded-lg ${
+                          isDisabled
+                              ? "bg-gray-300"
+                              : "bg-green-600 text-white"
+                      }`}
+                  >
+                    {isCreating ? "Tạo mới" : "Lưu"}
+                  </button>
+                  <button
+                      onClick={handleCancel}
+                      className="flex-1 py-2 bg-gray-600 text-white rounded-lg"
+                  >
+                    Hủy
+                  </button>
+                </div>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
   )
 }

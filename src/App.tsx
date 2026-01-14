@@ -20,6 +20,7 @@ import TransferDelivery from './components/TransferDelivery';
 import type { Category } from './types/category';
 import BrandList from './components/BrandList';
 import BrandDetail from './components/BrandDetail';
+import { useBrands } from "./hooks/useBrands"
 
 function App() {
   const location = useLocation();
@@ -32,6 +33,32 @@ function App() {
     setProducts,
     fetchProductDetail,
   } = useProducts();
+
+  const {
+    brands,
+    changeBrandStatus,
+    fetchBrands
+  } = useBrands()
+
+  const [selectedBrandId, setSelectedBrandId] = useState<number | null>(null)
+  const [isCreatingBrand, setIsCreatingBrand] = useState(false)
+
+  const selectedBrand =
+      brands?.find(b => b.id === selectedBrandId) ?? null
+
+  const handleSelectBrand = (id: number) => {
+    setSelectedBrandId(id)
+  }
+
+  const handleAddBrand = () => {
+    setIsCreatingBrand(true)
+    setSelectedBrandId(null)
+  }
+
+  const handleBackFromBrandDetail = () => {
+    setIsCreatingBrand(false)
+    setSelectedBrandId(null)
+  }
 
   const { categories, changeCategoryStatus, fetchCategories} = useCategories();
 
@@ -246,30 +273,31 @@ function App() {
           )}
 
           {menu === 'brands' && (
-            <div className="grid grid-cols-3 gap-6 h-[calc(100vh-260px)]">
-              <div className="col-span-2 bg-white rounded shadow overflow-auto">
-                <BrandList
-                  categories={categories}
-                  onSelect={(id) => {
-                    console.log('Selected category ID:', id);
-                    handleSelectCategory(id);
-                    setIsCreatingCategory(false);
-                  }}
-                  onChangeStatus={changeCategoryStatus}
-                  onAdd={handleAddCategory}
-                />
+              <div className="grid grid-cols-3 gap-6 h-[calc(100vh-260px)]">
+                <div className="col-span-2 bg-white rounded shadow overflow-hidden">
+                  <BrandList
+                      brands={brands}
+                      onSelect={(id) => {
+                        handleSelectBrand(id)
+                        setIsCreatingBrand(false)
+                      }}
+                      onChangeStatus={changeBrandStatus}
+                      onAdd={handleAddBrand}
+                  />
+                </div>
+
+                <div className="col-span-1 bg-white rounded shadow overflow-auto">
+                  <BrandDetail
+                      brand={selectedBrand}
+                      brands={brands}
+                      isCreating={isCreatingBrand}
+                      onBack={handleBackFromBrandDetail}
+                      onRefresh={fetchBrands}
+                  />
+                </div>
               </div>
-              <div className="col-span-1 bg-white rounded shadow overflow-auto">
-                <BrandDetail
-                  category={selectedCategory}
-                  onBack={handleBackFromCategoryDetail}
-                  onSave={handleSaveCategory}
-                  isCreating={isCreatingCategory}
-                  onCreate={handleSaveCategory}
-                />
-              </div>
-            </div>
           )}
+
 
           {menu === 'transferProduct' && (
             <div className="bg-white rounded shadow p-4 min-h-[calc(100vh-260px)]">

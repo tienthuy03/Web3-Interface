@@ -187,10 +187,23 @@ function App() {
         setSelectedProductDetail(productData);
         setShowDetail(true);
       }
+      return productData;
     } catch (err) {
       alert("Lỗi: " + (err as Error).message);
     }
   };
+
+  const [editingProduct, setEditingProduct] = useState<any>(null);
+  useEffect(() => {
+    if (showEditModal && editingProductId) {
+      const fetchProduct = async () => {
+        const product = await fetchProductDetail(editingProductId);
+        setEditingProduct(product);
+      };
+
+      fetchProduct();
+    }
+  }, [showEditModal, editingProductId]);
 
   const handleSelectCategory = (id: number) => {
     const found = categories?.find(t => t.id === id);
@@ -219,6 +232,7 @@ function App() {
     setIsCreatingCategory(false);
     setSelectedCategoryId(null);
   };
+
 
   return (
     <div className="h-screen bg-gray-50">
@@ -348,48 +362,53 @@ function App() {
             </div>
           )}
 
+          console.log('Selected Product Detail for Edit:', categories);
           {/* Edit Modal */}
-          {showEditModal && editingProductId && (() => {
-            const product = products.find(p => p.id === editingProductId);
-            if (!product) return null;
-
-            return (
+          {showEditModal && editingProduct && (
               <ProductForm
-                initial={{
-                  id: product.id,
-                  sku: (product as any).productCode || (product as any).sku || '',
-                  batchNumber: (product as any).batchId || (product as any).batchNumber || '',
-                  category: product.category || '',
-                  brand: product.brand || '',
-                  originCountry: (product as any).origin || '',
-                  name: product.name || '',
-                  description: product.description || '',
-                  ingredients: product.ingredients || '',
-                  manufactureDate: product.manufactureDate ?
-                    (product.manufactureDate > 1e12 ? product.manufactureDate : product.manufactureDate * 1000) :
-                    undefined,
-                  expiryDate: product.expiryDate ?
-                    (product.expiryDate > 1e12 ? product.expiryDate : product.expiryDate * 1000) :
-                    undefined,
-                  price: product.price || 0,
-                  currency: product.currency || 'VND',
-                  imagePath: product.imageUrl || product.image || '',
-                  documentPath: (product as any).documentUrl || ''
-                }}
-                onSave={handleSaveProduct}
-                onCancel={() => {
-                  setShowEditModal(false);
-                  setEditingProductId(null);
-                }}
-                asModal
+                  initial={{
+                    id: editingProduct.id,
+                    sku: editingProduct.sku || '',
+                    batchNumber: editingProduct.batchNumber || '',
+                    category: editingProduct.category || '',
+                    brand: editingProduct.brand || '',
+                    originCountry: editingProduct.origin || '',
+                    name: editingProduct.name || '',
+                    description: editingProduct.description || '',
+                    ingredients: editingProduct.ingredients || '',
+                    manufactureDate: editingProduct.manufactureDate
+                        ? (editingProduct.manufactureDate > 1e12
+                            ? editingProduct.manufactureDate
+                            : editingProduct.manufactureDate * 1000)
+                        : undefined,
+                    expiryDate: editingProduct.expiryDate
+                        ? (editingProduct.expiryDate > 1e12
+                            ? editingProduct.expiryDate
+                            : editingProduct.expiryDate * 1000)
+                        : undefined,
+                    price: editingProduct.price || 0,
+                    currency: editingProduct.currency || 'VND',
+                    imagePath: editingProduct.imageUrl || editingProduct.image || '',
+                    documentPath: editingProduct.documentUrl || editingProduct?.documentURI
+                  }}
+                  categories={categories}
+                  brands={brands}
+                  onSave={handleSaveProduct}
+                  onCancel={() => {
+                    setShowEditModal(false);
+                    setEditingProductId(null);
+                    setEditingProduct(null);
+                  }}
+                  asModal
               />
-            );
-          })()}
+          )}
 
           {/* Create Modal */}
           {showCreateModal && (
             <ProductForm
               initial={{}}
+              categories={categories}
+              brands={brands}
               onSave={handleSaveProduct}
               onCancel={() => setShowCreateModal(false)}
               asModal

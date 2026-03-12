@@ -24,6 +24,8 @@ export const useProducts = () => {
 
       const mapped: Product[] = chainProducts.map((p: any, index: number) => ({
         id: p.id?.toString() ?? index.toString(),
+        sku: p.sku ?? "",
+        batchNumber: p.batchNumber ?? "",
         name: p.name ?? "",
         price: Number(p.price ?? 0),
         description: p.description ?? "",

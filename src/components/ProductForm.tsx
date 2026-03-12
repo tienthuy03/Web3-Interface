@@ -5,9 +5,13 @@ import { toTimestamp } from "../utils/helper.tsx";
 import { ABI, CONTRACT_ADDRESS } from '../contracts/contractData.ts'
 import { uploadFile } from '../utils/fileUpload.tsx'
 import type { ProductFormData } from '../types/product.ts';
+import type {Category} from "../types/category.ts";
+import type {Brand} from "../types/brand.ts";
 
 type Props = {
   initial?: Partial<ProductFormData>
+  categories?: Category[],
+  brands?: Brand[],
   onSave: (data: ProductFormData) => Promise<void>
   onCancel: () => void
   asModal?: boolean
@@ -19,7 +23,7 @@ const COUNTRY_OPTIONS = ['Việt Nam', 'Thái Lan', 'Nhật Bản', 'Mỹ']
 const CURRENCY_OPTIONS = ['VND', 'USD']
 
 const getBatchNumber = (data: any): string => {
-  return data?.batchNumber || data?.batchId || data?.batch || data?.batchNo || ''
+  return data?.batchNumber;
 }
 
 const getImageUrl = (data: any): string => {
@@ -27,7 +31,7 @@ const getImageUrl = (data: any): string => {
 }
 
 const getDocumentUrl = (data: any): string => {
-  return data?.documentUrl || data?.document || data?.documentPath || ''
+  return data?.documentPath
 }
 
 const getOriginCountry = (data: any): string => {
@@ -170,11 +174,12 @@ export async function updateProductOnChain(productId: number, form: {
   return receipt
 }
 
-export default function ProductForm({ initial = {}, onSave, onCancel, asModal = false }: Props) {
-  const [sku, setSku] = useState(initial.sku ?? '')
+export default function ProductForm({ initial = {}, categories, brands, onSave, onCancel, asModal = false }: Props) {
+  console.log(categories,brands)
+  const [sku, setSku] = useState(initial?.sku ?? '')
   const [batchNumber, setBatchNumber] = useState(getBatchNumber(initial))
-  const [category, setCategory] = useState(initial.category ?? CATEGORY_OPTIONS[0])
-  const [brand, setBrand] = useState(initial.brand ?? BRAND_OPTIONS[0])
+  const [category, setCategory] = useState(initial?.category ?? CATEGORY_OPTIONS[0])
+  const [brand, setBrand] = useState(initial?.brand ?? BRAND_OPTIONS[0])
   const [originCountry, setOriginCountry] = useState(getOriginCountry(initial))
   const [name, setName] = useState(initial.name ?? '')
   const [description, setDescription] = useState(initial.description ?? '')
@@ -198,6 +203,7 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
   const [currentImageUrl, setCurrentImageUrl] = useState(getImageUrl(initial))
   const [currentDocumentUrl, setCurrentDocumentUrl] = useState(getDocumentUrl(initial))
   const isEdit = !!(initial as any).id
+  const today = new Date().toISOString().split("T")[0];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -207,7 +213,6 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
     }
 
     const loadingToast = toast.loading(isEdit ? 'Đang cập nhật sản phẩm...' : 'Đang tạo sản phẩm...')
-
     try {
       let imageFilePath = currentImageUrl
       let documentFilePath = currentDocumentUrl
@@ -225,7 +230,7 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
 
       if (isEdit) {
         const productId = Number((initial as any).id)
-        console.log(productId, imageFilePath, documentFilePath)
+
         try {
           await updateProductOnChain(productId, {
             sku,
@@ -297,6 +302,7 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
       toast.error(`❌ ${errorMessage}`)
     }
   }
+  console.log()
 
   const form = (
     <form onSubmit={handleSubmit} className="space-y-5">
@@ -306,14 +312,23 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
           <input
             value={sku}
             onChange={e => setSku(e.target.value)}
+            minLength={5}
+            maxLength={10}
+            required
+            disabled={isEdit}
             className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-200 outline-none"
           />
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">Số lô *</label>
           <input
+              type="number"
             value={batchNumber}
             onChange={e => setBatchNumber(e.target.value)}
+            minLength={4}
+            maxLength={8}
+            required
+            disabled={isEdit}
             className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-200 outline-none"
           />
         </div>
@@ -324,20 +339,34 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
           <label className="block text-sm font-medium mb-1">Danh mục</label>
           <select
             value={category}
+            disabled={isEdit}
             onChange={e => setCategory(e.target.value)}
             className="w-full border rounded-lg px-3 py-2 text-sm bg-white"
           >
-            {CATEGORY_OPTIONS.map(v => <option key={v}>{v}</option>)}
+            {categories?.filter(v => v.active)
+                .map(v => (
+                    <option key={v.id} value={v.name}>
+                      {v.name}
+                    </option>
+                ))
+            }
           </select>
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">Thương hiệu</label>
           <select
             value={brand}
+            disabled={isEdit}
             onChange={e => setBrand(e.target.value)}
             className="w-full border rounded-lg px-3 py-2 text-sm bg-white"
           >
-            {BRAND_OPTIONS.map(v => <option key={v}>{v}</option>)}
+            {brands?.filter(v => v.active)
+                .map(v => (
+                    <option key={v.id} value={v.name}>
+                      {v.name}
+                    </option>
+                ))
+            }
           </select>
         </div>
       </div>
@@ -347,6 +376,7 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
           <label className="block text-sm font-medium mb-1">Quốc gia xuất xứ</label>
           <select
             value={originCountry}
+            disabled={isEdit}
             onChange={e => setOriginCountry(e.target.value)}
             className="w-full border rounded-lg px-3 py-2 text-sm bg-white"
           >
@@ -357,6 +387,7 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
           <label className="block text-sm font-medium mb-1">Tên sản phẩm *</label>
           <input
             value={name}
+            disabled={isEdit}
             onChange={e => setName(e.target.value)}
             className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-200 outline-none"
           />
@@ -377,6 +408,7 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
         <label className="block text-sm font-medium mb-1">Thành phần</label>
         <textarea
           value={ingredients}
+          disabled={isEdit}
           onChange={e => setIngredients(e.target.value)}
           rows={2}
           className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-200 outline-none"
@@ -388,8 +420,17 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
           <label className="block text-sm font-medium mb-1">Ngày sản xuất *</label>
           <input
             type="date"
+            min={today}
             value={manufactureDate}
-            onChange={e => setManufactureDate(e.target.value)}
+            disabled={isEdit}
+            onChange={(e) => {
+              const value = e.target.value;
+              setManufactureDate(value);
+
+              if (expiryDate && expiryDate < value) {
+                setExpiryDate("");
+              }
+            }}
             required
             className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-200 outline-none"
           />
@@ -398,7 +439,9 @@ export default function ProductForm({ initial = {}, onSave, onCancel, asModal = 
           <label className="block text-sm font-medium mb-1">Ngày hết hạn *</label>
           <input
             type="date"
+            min={manufactureDate || today}
             value={expiryDate}
+            disabled={isEdit}
             onChange={e => setExpiryDate(e.target.value)}
             required
             className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-200 outline-none"

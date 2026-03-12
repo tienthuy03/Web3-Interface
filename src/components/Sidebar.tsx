@@ -39,14 +39,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeMenu, onMenuChange }) =>
             <button
               onClick={() => onMenuChange('categories')}
               className={`w-full text-left px-3 py-2 rounded ${activeMenu === 'categories' ? 'bg-blue-50 text-blue-600 font-medium' : 'hover:bg-gray-100'}`}>
-              Category
+              Categories
             </button>
           </li>
           <li>
             <button
               onClick={() => onMenuChange('brands')}
               className={`w-full text-left px-3 py-2 rounded ${activeMenu === 'brands' ? 'bg-blue-50 text-blue-600 font-medium' : 'hover:bg-gray-100'}`}>
-              Brand
+              Brands
             </button>
           </li>
           <li>

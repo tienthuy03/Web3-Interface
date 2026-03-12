@@ -1,6 +1,8 @@
 
 import React, { useEffect, useState } from 'react'
 import { toDataURL } from 'qrcode'
+import type {Category} from "../types/category.ts";
+import type {Brand} from "../types/brand.ts";
 
 type Product = {
   id: string;
@@ -27,7 +29,9 @@ type Product = {
 };
 
 type Props = {
-  product?: Product | null
+  product?: Product | null,
+  categories: Category[],
+  brands: Brand[],
   onBack: () => void
   onEdit: (id: string) => void
   onDelete: (id: string) => void
